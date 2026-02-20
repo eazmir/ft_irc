@@ -47,5 +47,15 @@ void managerchannel::handle_input(const std::string &input, client &c)
        std::cout << "Received HELLO from client FD: " << c.fd << std::endl;
        send(c.fd, "Hello client!\r\n", 15, 0);
     }
+    // Example: Handle ECHO command
+    for (std::map<int, client>::iterator it = _clients.begin(); it != _clients.end(); ++it)
+    {
+        if (it->first == c.fd)
+        {
+            send(it->first, "Message received\r\n", 18, 0);
+            std::cout << "Client FD: " << it->first << " sent: " << input << std::endl;
+            break;
+        }
+    }
      // Handle other commands like JOIN, PART, PRIVMSG, etc.
 }
