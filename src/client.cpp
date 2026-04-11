@@ -1,61 +1,152 @@
 #include "../include/client.hpp"
-#include "../include/server.hpp"
-#include <map>
-#include <set>
+#include "../include/utls.hpp"
 
-void  managerchannel::print_info()
-{
-    if (_clients.empty())
-    {
-        std::cout << "No clients connected" << std::endl;
-        return;
-    }
-    std::map<int, client>::iterator it;
-    for (std::map<int, client>::iterator it = _clients.begin(); it != _clients.end(); ++it)
-    {
-            std::cout << "FD: " << it->first << std::endl;
-            std::cout << "Status: " << it->second.status << std::endl;
-            std::cout << "Pass OK: " << it->second.pass_ok << std::endl;
-            std::cout << "User OK: " << it->second.user_ok << std::endl;
-            std::cout << "Nick OK: " << it->second.nick_ok << std::endl;
-            std::cout << "Registered: " << it->second.regestred << std::endl;
-            std::cout << "Nickname: " << it->second.nickname << std::endl;
-            std::cout << "Username: " << it->second.username << std::endl;
-            std::cout << "Real Name: " << it->second.realname << std::endl;
-            std::cout << "--------------------------" << std::endl;
-    }
-}
-
-managerchannel::managerchannel(std::map<int, client> &clients)
-    : _clients(clients)
+managerchannel::managerchannel(std::map<int, client> &clients,const std::string &pass)
+    : _clients(clients),
+      auth(pass)
 {
 }
 
 void managerchannel::handle_input(const std::string &input, client &c)
 {
-    // For debugging, print the received input and client info
-    print_info();
-    // Example: Handle PING command
-    if (input.compare("PING") == 0)
+    this->auth.tryRegister(c,input);
+    if (input.compare(0,5,"PRINT") == 0)
+        Utils::printClientsInfo(_clients);
+    if (input.compare(0,4,"JOIN") == 0 || input.compare(0,3,"MSG") == 0)
     {
-        std::cout << "Received PING from client FD: " << c.fd << std::endl;
-        send(c.fd, "PONG\r\n", 6, 0);
+        handleJoin(input,c);
+    }
+}
+
+ void managerchannel::handleJoin(const std::string &input, client &c)
+ {
+    /////////////////////////////////////////////
+    //-------parse string to single words--------
+    std::stringstream ss(input);
+    while (ss >> this->token)
+        tokens.push_back(token);
+    ////////////////////////////////////////////
+    //check if input < 2 
+    if (tokens.size() < 2)
         return;
-    }
-    if (input.compare("HELLO") == 0)
+    ////////////////////////////////////////////
+    //check user is regestred or no
+    if (!c.regestred)
+        return;
+    ///////////////////////////////////////////
+    // Ahmed sends:  JOIN #general
+    //                 │
+    //                 ▼
+    //   Does #general exist in server.channels?
+    //                 │
+    //       ┌─────────┴─────────┐
+    //      YES                  NO
+    //       │                   │
+    //  check modes         CREATE IT now
+    //  let ahmed in        make ahmed OP
+    ///////////////////////////////////////////
+    this->it = channels.find(channel_name);
+    if (it ==  channels.end())
     {
-       std::cout << "Received HELLO from client FD: " << c.fd << std::endl;
-       send(c.fd, "Hello client!\r\n", 15, 0);
+        Channel *ch = new Channel();
+        ch->limit = 0;
+        ch->name = channel_name;
+        ch->operators.push_back(c.fd);
+        ch->members.push_back(c.fd);
+        ch->topic = "";
+        ch->password = "";
+        ch->topic_restricted = false;
+        channels[channel_name] = ch;
+        this->ch = ch;
     }
-    // Example: Handle ECHO command
-    for (std::map<int, client>::iterator it = _clients.begin(); it != _clients.end(); ++it)
+    ///////////////////////////////////////////
+   else
     {
-        if (it->first == c.fd)
+        // if (ch->invite_only)
+        // {
+        //     std::string err = ":server 473 " + c.nickname + " " + channel_name + " :Cannot join channel (+i)\r\n";
+        //     send(c.fd, err.c_str(), err.size(), 0);
+        //     return;
+        // }
+        // if (!ch->password.empty())
+        // {
+        //     std::string given = (tokens.size() >= 3) ? tokens[2] : "";
+        //     if (given != ch->password)
+        //     {
+        //         std::string err = ":server 475 " + c.nickname + " " + channel_name + " :Cannot join channel (+k)\r\n";
+        //         send(c.fd, err.c_str(), err.size(), 0);
+        //         return;
+        //     }
+        // }
+        // if (ch->limit > 0 && (int)ch->members.size() >= ch->limit)
+        // {
+        //     std::string err = ":server 471 " + c.nickname + " " + channel_name + " :Cannot join channel (+l)\r\n";
+        //     send(c.fd, err.c_str(), err.size(), 0);
+        //     return;
+        // }
+        ch->members.push_back(c.fd);
+        Message msg = parseMessage(input);
+        std::cout << "command: " << msg.command << std::endl;
+        std::cout << "args: "    << msg.args[0] << std::endl;
+        std::cout << "msg: "     << msg.trailing << std::endl;
+
+        if (msg.command == "MSG")  // ✅ fixed: was "MSG"
         {
-            send(it->first, "Message received\r\n", 18, 0);
-            std::cout << "Client FD: " << it->first << " sent: " << input << std::endl;
-            break;
+            // if (msg.args.empty())
+            //     return;
+            // it = channels.find(msg.args[0]);
+            // if (it == channels.end())
+            //     return;
+            ch = it->second;
+            std::string text = msg.trailing;
+            std::vector<int>::iterator jt;
+            std::string full_msg = ":" + c.nickname +
+                                "!" + c.username +
+                                "@" + c.hostname +
+                                " PRIVMSG " + ch->name +
+                                " :" + text + "\r\n";
+            for (jt = ch->members.begin(); jt != ch->members.end(); jt++)
+            {
+                std::cout<<"users:" <<*jt<<std::endl;
+                if (*jt == c.fd)
+                    continue;
+                send(*jt, full_msg.c_str(), full_msg.size(), 0);
+            }
         }
     }
-     // Handle other commands like JOIN, PART, PRIVMSG, etc.
+ }
+
+ Message parseMessage(const std::string &input)
+{
+    Message msg;
+
+    std::string::size_type pos = input.find(':');
+
+    std::string before;
+    if (pos != std::string::npos)
+        before = input.substr(0, pos);
+    else
+        before = input;
+
+    std::string after;
+    if (pos != std::string::npos)
+        after = input.substr(pos + 1);
+
+    std::istringstream iss(before);
+    std::string token;
+
+    bool first = true;
+    while (iss >> token)
+    {
+        if (first)
+        {
+            msg.command = token;
+            first = false;
+        }
+        else
+            msg.args.push_back(token);
+    }
+    if (!after.empty())
+        msg.trailing = after;
+    return msg;
 }

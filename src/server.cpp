@@ -6,13 +6,12 @@
 /*   By: eazmir <eazmir@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/18 11:09:17 by eazmir            #+#    #+#             */
-/*   Updated: 2026/02/20 17:02:06 by eazmir           ###   ########.fr       */
+/*   Updated: 2026/04/11 16:21:03 by eazmir           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../include/server.hpp"
 #include "../include/client.hpp"
-#include <cstdio>
 
 server::server()
 {
@@ -79,9 +78,11 @@ void server::init()
     this->setup_poll();
 }
 
-server::server(int port,std::string password):_port(port),_password(password)
+server::server(int port,std::string password):
+_port(port),
+_password(password)
 {
-    channel = new managerchannel(_clients);
+    channel = new managerchannel(_clients,password); 
     this->init();
     this->handleEvent();
 }
@@ -132,6 +133,8 @@ void server::accept_connection()
     __client.pass_ok = false;
     __client.user_ok = false;
     __client.regestred = false;
+    __client.status = false;
+      __client.hostname = getMachineName();
     /////////////////////////////////////////////////////////////////
     _clients[client_fd] = __client;
 }
@@ -192,4 +195,20 @@ std::string server::Extract_data(client &c)
         line.erase(line.size() - 1, 1);
 
     return line;
+}
+
+
+#include <unistd.h>
+#include <string>
+
+std::string getMachineName()
+{
+    char hostname[1024];
+
+    if (gethostname(hostname, sizeof(hostname)) == -1)
+        return "unknown";
+
+    hostname[sizeof(hostname) - 1] = '\0'; // safety
+
+    return std::string(hostname);
 }

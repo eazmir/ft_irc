@@ -10,6 +10,8 @@ FILES = \
 	$(DIR_MAIN)/main.cpp \
 	$(DIR_SRC)/server.cpp\
 	$(DIR_SRC)/client.cpp \
+	$(DIR_SRC)/utls.cpp\
+	$(DIR_SRC)/authentication.cpp\
 
 OBJS = $(FILES:.cpp=.o)
 

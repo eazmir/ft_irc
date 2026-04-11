@@ -6,13 +6,16 @@
 /*   By: eazmir <eazmir@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/18 11:09:01 by eazmir            #+#    #+#             */
-/*   Updated: 2026/02/20 17:03:43 by eazmir           ###   ########.fr       */
+/*   Updated: 2026/04/11 16:18:18 by eazmir           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef SERVER_HPP
 #define SERVER_HPP
 
+#include <string>
+#include <sstream>
+#include "authentication.hpp"
 #include <iostream>
 #include <cstring>
 #include <netinet/in.h>
@@ -23,13 +26,15 @@
 #include <poll.h>
 #include <vector>
 #include <algorithm>
+#include <cstdio>
 #include <fcntl.h>
 #include <map>
 #include <set>
 
+///////////////////////////////////////////////////////////
 // Forward declaration
 class managerchannel;
-
+class authentication;
 ///////////////////////////////////////////////////////////
 #define BUFFER_SIZE 1024
 #define MAX_CLIENT 1000
@@ -62,7 +67,7 @@ class  server
         std::string _password;
         std::map<int ,client> _clients;
         ///////////////////////////////////////////////////
-         managerchannel *channel; 
+         managerchannel *channel;   
         struct sockaddr_in _addr;
         std::vector<pollfd> _pfds;
     public:
@@ -81,5 +86,5 @@ class  server
         void disconnect_client(size_t &index);
         std::string Extract_data(client &c);
 };
-
+std::string getMachineName();
 #endif
