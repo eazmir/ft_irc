@@ -6,7 +6,7 @@
 /*   By: haitaabe <haitaabe@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/04/11 21:41:26 by haitaabe          #+#    #+#             */
-/*   Updated: 2026/04/14 13:29:24 by haitaabe         ###   ########.fr       */
+/*   Updated: 2026/04/14 13:36:11 by haitaabe         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -70,7 +70,7 @@ void managerchannel::handle_input(const std::string &input, client &c)
         this->ch = it->second; 
         std::cout << "Joined existing " << this->channel_name << std::endl;
     }
-   
+    this->ch->members.push_back(c.fd);
  }
 
  Message parseMessage(const std::string &input)
