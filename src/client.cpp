@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   client.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: eazmir <eazmir@student.42.fr>              +#+  +:+       +#+        */
+/*   By: haitaabe <haitaabe@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/04/11 21:41:26 by haitaabe          #+#    #+#             */
-/*   Updated: 2026/04/14 17:40:28 by eazmir           ###   ########.fr       */
+/*   Updated: 2026/04/14 19:45:19 by haitaabe         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -84,7 +84,6 @@ void test(std::vector<int> members)
     {
         this->ch = it->second; 
         std::cout<<"__________________________________________\n";
-        // std::cout << "Joined existing " << this->channel_name << std::endl;
         this->ch->members.push_back(c.fd);
         std::cout<<"members: \n";
         test(this->ch->members);
@@ -92,6 +91,15 @@ void test(std::vector<int> members)
         std::cout<<"admin: ";
         test(this->ch->operators);
         std::cout<<"__________________________________________\n";
+    }
+
+
+    std::string prefix = ":" + c.nickname + "!" + c.username + "@localhost";
+    std::string join_msg = prefix + " JOIN " + this->channel_name + "\r\n";
+    for (size_t i = 0; i < this->ch->members.size(); i++)
+    {
+        int target_fd = this->ch->members[i];
+        send(target_fd, join_msg.c_str(), join_msg.size(), 0);
     }
  }
 
