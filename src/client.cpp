@@ -6,7 +6,7 @@
 /*   By: haitaabe <haitaabe@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/04/11 21:41:26 by haitaabe          #+#    #+#             */
-/*   Updated: 2026/04/14 13:36:11 by haitaabe         ###   ########.fr       */
+/*   Updated: 2026/04/14 16:22:44 by haitaabe         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -73,37 +73,37 @@ void managerchannel::handle_input(const std::string &input, client &c)
     this->ch->members.push_back(c.fd);
  }
 
- Message parseMessage(const std::string &input)
-{
-    Message msg;
+//  Message parseMessage(const std::string &input)
+// {
+//     Message msg;
 
-    std::string::size_type pos = input.find(':');
+//     std::string::size_type pos = input.find(':');
 
-    std::string before;
-    if (pos != std::string::npos)
-        before = input.substr(0, pos);
-    else
-        before = input;
+//     std::string before;
+//     if (pos != std::string::npos)
+//         before = input.substr(0, pos);
+//     else
+//         before = input;
 
-    std::string after;
-    if (pos != std::string::npos)
-        after = input.substr(pos + 1);
+//     std::string after;
+//     if (pos != std::string::npos)
+//         after = input.substr(pos + 1);
 
-    std::istringstream iss(before);
-    std::string token;
+//     std::istringstream iss(before);
+//     std::string token;
 
-    bool first = true;
-    while (iss >> token)
-    {
-        if (first)
-        {
-            msg.command = token;
-            first = false;
-        }
-        else
-            msg.args.push_back(token);
-    }
-    if (!after.empty())
-        msg.trailing = after;
-    return msg;
-}
+//     bool first = true;
+//     while (iss >> token)
+//     {
+//         if (first)
+//         {
+//             msg.command = token;
+//             first = false;
+//         }
+//         else
+//             msg.args.push_back(token);
+//     }
+//     if (!after.empty())
+//         msg.trailing = after;
+//     return msg;
+// }
