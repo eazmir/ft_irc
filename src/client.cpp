@@ -6,7 +6,7 @@
 /*   By: haitaabe <haitaabe@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/04/11 21:41:26 by haitaabe          #+#    #+#             */
-/*   Updated: 2026/04/13 18:50:57 by haitaabe         ###   ########.fr       */
+/*   Updated: 2026/04/14 13:29:24 by haitaabe         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,12 +33,44 @@ void managerchannel::handle_input(const std::string &input, client &c)
  void managerchannel::handleJoin(const std::string &input, client &c)
  {
     if (!c.regestred)
-    std::cout << "You are Not regestred !" << std::endl;
+    {
+        std::cout << "You are Not regestred !" << std::endl;
         return;
+    }
     else
     {
+        std::vector<std::string> local_tokens;
+        std::stringstream ss(input);
+        std::string token;
         
+        while (ss >> token)
+        {
+            local_tokens.push_back(token);
+        }
+        if (local_tokens.size() < 2)
+        {
+           std::cout << "Error: Not enough parameters" << std::endl;
+           return;
+        }
+        this->channel_name = local_tokens[1];
     }
+    
+    this->it = channels.find(this->channel_name);
+    if (it == channels.end())
+    {
+        Channel *New_ch = new Channel();
+        New_ch->name =channel_name;
+        channels[this->channel_name] = New_ch;
+        this->ch = New_ch;
+        
+        std::cout << "Success: New channel " << this->channel_name << " created." << std::endl;
+    }
+    else 
+    {
+        this->ch = it->second; 
+        std::cout << "Joined existing " << this->channel_name << std::endl;
+    }
+   
  }
 
  Message parseMessage(const std::string &input)
