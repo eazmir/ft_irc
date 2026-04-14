@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   client.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: haitaabe <haitaabe@student.42.fr>          +#+  +:+       +#+        */
+/*   By: eazmir <eazmir@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/04/11 21:39:58 by haitaabe          #+#    #+#             */
-/*   Updated: 2026/04/11 21:39:59 by haitaabe         ###   ########.fr       */
+/*   Updated: 2026/04/14 17:05:12 by eazmir           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,7 +27,8 @@ struct Message
     std::string trailing;
 };
 
-struct Channel {
+struct Channel 
+{
     std::string       name;
     std::string       topic;
     std::vector<int>  members;      // fds of all members

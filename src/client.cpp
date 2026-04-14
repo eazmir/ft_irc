@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   client.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: haitaabe <haitaabe@student.42.fr>          +#+  +:+       +#+        */
+/*   By: eazmir <eazmir@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/04/11 21:41:26 by haitaabe          #+#    #+#             */
-/*   Updated: 2026/04/14 16:22:44 by haitaabe         ###   ########.fr       */
+/*   Updated: 2026/04/14 17:40:28 by eazmir           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,6 +28,14 @@ void managerchannel::handle_input(const std::string &input, client &c)
     {
         handleJoin(input,c);
     }
+}
+
+void test(std::vector<int> members)
+{
+    for (size_t i = 0; i < members.size() ; i++)
+    {
+        std::cout<<" "<<members[i]<<std::endl;
+    }   
 }
 
  void managerchannel::handleJoin(const std::string &input, client &c)
@@ -56,21 +64,35 @@ void managerchannel::handle_input(const std::string &input, client &c)
     }
     
     this->it = channels.find(this->channel_name);
-    if (it == channels.end())
-    {
+   if (it == channels.end())
+   {
         Channel *New_ch = new Channel();
-        New_ch->name =channel_name;
+        New_ch->name = channel_name;
+        New_ch->limit = 0;
+        New_ch->invite_only = false;
+        New_ch->topic_restricted = false;
         channels[this->channel_name] = New_ch;
         this->ch = New_ch;
-        
+        this->ch->members.push_back(c.fd);
+        this->ch->operators.push_back(c.fd); // ✅ First joiner becomes operator
+       
         std::cout << "Success: New channel " << this->channel_name << " created." << std::endl;
+        // std::string msg = "Success: New channel " + this->channel_name + " created.\r\n";
+        // send(c.fd, msg.c_str(), msg.size(), 0);
     }
     else 
     {
         this->ch = it->second; 
-        std::cout << "Joined existing " << this->channel_name << std::endl;
+        std::cout<<"__________________________________________\n";
+        // std::cout << "Joined existing " << this->channel_name << std::endl;
+        this->ch->members.push_back(c.fd);
+        std::cout<<"members: \n";
+        test(this->ch->members);
+        std::cout<<"__________________________________________\n";
+        std::cout<<"admin: ";
+        test(this->ch->operators);
+        std::cout<<"__________________________________________\n";
     }
-    this->ch->members.push_back(c.fd);
  }
 
 //  Message parseMessage(const std::string &input)
