@@ -6,7 +6,7 @@
 /*   By: haitaabe <haitaabe@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/04/11 21:41:26 by haitaabe          #+#    #+#             */
-/*   Updated: 2026/04/15 15:24:47 by haitaabe         ###   ########.fr       */
+/*   Updated: 2026/04/15 18:56:26 by haitaabe         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,6 +27,10 @@ void managerchannel::handle_input(const std::string &input, client &c)
     if (input.compare(0,4,"JOIN") == 0 || input.compare(0,3,"MSG") == 0)
     {
         handleJoin(input,c);
+    }
+    if (input.compare(0, 7, "PRIVMSG") == 0)
+    {
+        handlePrivmsg(input, c);
     }
 }
 
@@ -118,37 +122,43 @@ void managerchannel::handleJoin(const std::string &input, client &c)
     send(c.fd, end_names.c_str(), end_names.size(), 0);
 }
 
-//  Message parseMessage(const std::string &input)
-// {
-//     Message msg;
+// to let ppl talk to each other and to know what is the new , private or public 
+void managerchannel::handlePrivmsg(const std::string &input, client &c)
+{
+    
+}
 
-//     std::string::size_type pos = input.find(':');
+ Message parseMessage(const std::string &input)
+{
+    Message msg;
 
-//     std::string before;
-//     if (pos != std::string::npos)
-//         before = input.substr(0, pos);
-//     else
-//         before = input;
+    std::string::size_type pos = input.find(':');
 
-//     std::string after;
-//     if (pos != std::string::npos)
-//         after = input.substr(pos + 1);
+    std::string before;
+    if (pos != std::string::npos)
+        before = input.substr(0, pos);
+    else
+        before = input;
 
-//     std::istringstream iss(before);
-//     std::string token;
+    std::string after;
+    if (pos != std::string::npos)
+        after = input.substr(pos + 1);
 
-//     bool first = true;
-//     while (iss >> token)
-//     {
-//         if (first)
-//         {
-//             msg.command = token;
-//             first = false;
-//         }
-//         else
-//             msg.args.push_back(token);
-//     }
-//     if (!after.empty())
-//         msg.trailing = after;
-//     return msg;
-// }
+    std::istringstream iss(before);
+    std::string token;
+
+    bool first = true;
+    while (iss >> token)
+    {
+        if (first)
+        {
+            msg.command = token;
+            first = false;
+        }
+        else
+            msg.args.push_back(token);
+    }
+    if (!after.empty())
+        msg.trailing = after;
+    return msg;
+}
