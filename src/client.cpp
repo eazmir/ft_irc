@@ -6,7 +6,7 @@
 /*   By: haitaabe <haitaabe@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/04/11 21:41:26 by haitaabe          #+#    #+#             */
-/*   Updated: 2026/04/15 18:56:26 by haitaabe         ###   ########.fr       */
+/*   Updated: 2026/04/16 15:49:11 by haitaabe         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -125,7 +125,76 @@ void managerchannel::handleJoin(const std::string &input, client &c)
 // to let ppl talk to each other and to know what is the new , private or public 
 void managerchannel::handlePrivmsg(const std::string &input, client &c)
 {
-    
+    std::stringstream scanner(input);
+    std::string command, target;
+
+    // 1. Get the basic words
+    if (!(scanner >> command >> target)) 
+        return; // Safety: Command was too short
+
+    // 2. Find the message (The Scissors)
+    size_t pos = input.find(':');
+    if (pos == std::string::npos) 
+        return; // Safety: No message content found, ignore it.
+
+    std::string message_body = input.substr(pos);
+
+    // 3. Decide where it goes
+    if (!target.empty() && target[0] == '#') 
+    {
+        // --- CHANNEL BROADCAST ---
+        std::map<std::string, Channel*>::iterator it = channels.find(target);
+        
+        if (it != channels.end()) 
+        {
+            Channel* room = it->second;
+
+            // PREPARE: Build the package once
+            std::string final_package = ":" + c.nickname + " PRIVMSG " + target + " " + message_body + "\r\n";
+
+            // DELIVERY: The Loop
+            for (size_t i = 0; i < room->members.size(); i++) 
+            {
+                int recipient_fd = room->members[i];
+
+                // FILTER: No Echo
+                if (recipient_fd != c.fd) 
+                {
+                    send(recipient_fd, final_package.c_str(), final_package.size(), 0);
+                }
+            }
+        }
+        else 
+        {
+            // Error 403: Room not found
+            std::string err = ":ircserv 403 " + c.nickname + " " + target + " :No such channel\r\n";
+            send(c.fd, err.c_str(), err.size(), 0);
+        }
+    }
+    else if (!target.empty())
+    {
+        // --- PRIVATE MESSAGE (DM) ---
+        bool found = false;
+        std::map<int, client>::iterator it_client;
+        
+        for (it_client = _clients.begin(); it_client != _clients.end(); ++it_client)
+        {
+            if (it_client->second.nickname == target)
+            {
+                std::string final_package = ":" + c.nickname + " PRIVMSG " + target + " " + message_body + "\r\n";
+                send(it_client->first, final_package.c_str(), final_package.size(), 0);
+                found = true;
+                break; 
+            }
+        }
+        
+        if (!found)
+        {
+            // Error 401: User not found
+            std::string err = ":ircserv 401 " + c.nickname + " " + target + " :No such nick\r\n";
+            send(c.fd, err.c_str(), err.size(), 0);
+        }
+    }
 }
 
  Message parseMessage(const std::string &input)
