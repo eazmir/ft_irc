@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   authentication.cpp                                 :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: eazmir <eazmir@student.42.fr>              +#+  +:+       +#+        */
+/*   By: haitaabe <haitaabe@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/21 00:47:05 by eazmir            #+#    #+#             */
-/*   Updated: 2026/04/11 15:48:35 by eazmir           ###   ########.fr       */
+/*   Updated: 2026/04/16 18:23:21 by haitaabe         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -92,7 +92,7 @@ void authentication::send_welcome(client &c)
     std::string msg; 
     msg = std::string(":ircserv 001 ") + c.nickname +
       " :Welcome to the IRC Network, " +
-      c.username + "!\r\n"; 
+      c.username + "!\r\n" + '\n'; 
     send(c.fd,msg.c_str(),strlen(msg.c_str()),1);
 }
 

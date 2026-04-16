@@ -6,7 +6,7 @@
 /*   By: haitaabe <haitaabe@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/04/11 21:41:26 by haitaabe          #+#    #+#             */
-/*   Updated: 2026/04/16 15:49:11 by haitaabe         ###   ########.fr       */
+/*   Updated: 2026/04/16 18:31:54 by haitaabe         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -230,4 +230,71 @@ void managerchannel::handlePrivmsg(const std::string &input, client &c)
     if (!after.empty())
         msg.trailing = after;
     return msg;
+}
+
+void managerchannel::handlePart(const std::string &input, client &c)
+{
+    std::stringstream scanner(input);
+    std::string command, target, reason;
+
+    if (!(scanner >> command >> target))
+        return;
+
+    // --- C++98 CLEANER: Remove trailing \r or \n ---
+    while (!target.empty() && (target[target.size() - 1] == '\r' || target[target.size() - 1] == '\n'))
+    {
+        target.erase(target.size() - 1);
+    }
+
+    size_t pos = input.find(':');
+    if (pos != std::string::npos) {
+        reason = input.substr(pos);
+        while (!reason.empty() && (reason[reason.size() - 1] == '\r' || reason[reason.size() - 1] == '\n'))
+        {
+            reason.erase(reason.size() - 1);
+        }
+    } else {
+        reason = ":Leaving";
+    }
+
+    // --- DIAGNOSTIC: Check if we even found the channel ---
+    std::cout << "[DEBUG] Target clean string: [" << target << "]" << std::endl;
+    
+    std::map<std::string, Channel*>::iterator it = channels.find(target);
+    if (it != channels.end())
+    {
+        std::cout << "[DEBUG] Channel found in Map!" << std::endl;
+        Channel* room = it->second;
+        bool found = false;
+
+        for (std::vector<int>::iterator vit = room->members.begin(); vit != room->members.end(); ++vit)
+        {
+            if (*vit == c.fd)
+            {
+                std::cout << "[DEBUG] User FD found. Broadcasting..." << std::endl;
+                
+                std::string part_msg = ":" + c.nickname + "!" + c.username + "@localhost PART " + target + " " + reason + "\r\n";
+                
+                for (size_t i = 0; i < room->members.size(); i++)
+                {
+                    send(room->members[i], part_msg.c_str(), part_msg.size(), 0);
+                }
+
+                room->members.erase(vit);
+                found = true;
+                std::cout << "[DEBUG] User erased from vector." << std::endl;
+                break; 
+            }
+        }
+        if (!found) {
+            std::cout << "[DEBUG] User FD not found in this channel's vector." << std::endl;
+            std::string err = ":ircserv 442 " + c.nickname + " " + target + " :You're not on that channel\r\n";
+            send(c.fd, err.c_str(), err.size(), 0);
+        }
+    }
+    else {
+        std::cout << "[DEBUG] Channel [" << target << "] NOT FOUND in Map." << std::endl;
+        std::string err = ":ircserv 403 " + c.nickname + " " + target + " :No such channel\r\n";
+        send(c.fd, err.c_str(), err.size(), 0);
+    }
 }
