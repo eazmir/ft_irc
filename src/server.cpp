@@ -6,7 +6,7 @@
 /*   By: haitaabe <haitaabe@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/18 11:09:17 by eazmir            #+#    #+#             */
-/*   Updated: 2026/04/17 11:24:40 by haitaabe         ###   ########.fr       */
+/*   Updated: 2026/04/17 11:43:27 by haitaabe         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -164,9 +164,15 @@ void server::recv_data(size_t &index)
         return;
     it->second.buffer += std::string(buffer, n);
     std::string line;
-    while (!(line = Extract_data(it->second)).empty())
+   while (!(line = Extract_data(it->second)).empty())
     {
         channel->handle_input(line, it->second);
+
+        if (_clients.find(fd) == _clients.end()) 
+        {
+            this->status = true;
+            break; 
+        }
     }
 }
 

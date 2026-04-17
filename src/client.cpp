@@ -6,7 +6,7 @@
 /*   By: haitaabe <haitaabe@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/04/11 21:41:26 by haitaabe          #+#    #+#             */
-/*   Updated: 2026/04/16 20:36:52 by haitaabe         ###   ########.fr       */
+/*   Updated: 2026/04/17 11:53:32 by haitaabe         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -52,13 +52,11 @@ void test(std::vector<int> members)
 
 void managerchannel::handleJoin(const std::string &input, client &c)
 {
-    // 1. REGISTRATION CHECK
     if (!c.regestred) {
         std::cout << "You are Not regestred !" << std::endl;
         return;
     }
 
-    // 2. PARSING (TOKENIZING)
     std::vector<std::string> local_tokens;
     std::stringstream ss(input);
     std::string token;
@@ -71,12 +69,11 @@ void managerchannel::handleJoin(const std::string &input, client &c)
     }
     this->channel_name = local_tokens[1];
 
-    // 3. CHANNEL LOGIC (FIND OR CREATE)
     this->it = channels.find(this->channel_name);
     if (it == channels.end()) {
         Channel *New_ch = new Channel();
         New_ch->name = channel_name;
-        // Basic settings for C++98
+ 
         New_ch->limit = 0;
         New_ch->invite_only = false;
         New_ch->topic_restricted = false;
@@ -84,11 +81,10 @@ void managerchannel::handleJoin(const std::string &input, client &c)
         channels[this->channel_name] = New_ch;
         this->ch = New_ch;
         this->ch->members.push_back(c.fd);
-        this->ch->operators.push_back(c.fd); // First one is the boss
+        this->ch->operators.push_back(c.fd);
     }
     else {
         this->ch = it->second;
-        // Check if user is already a member to avoid duplicates
         bool already_member = false;
         for (size_t i = 0; i < this->ch->members.size(); i++) {
             if (this->ch->members[i] == c.fd) already_member = true;
@@ -97,23 +93,19 @@ void managerchannel::handleJoin(const std::string &input, client &c)
             this->ch->members.push_back(c.fd);
     }
 
-    // --- PHASE 1: THE BROADCAST (Tell everyone) ---
     std::string prefix = ":" + c.nickname + "!" + c.username + "@localhost";
     std::string join_msg = prefix + " JOIN " + this->channel_name + "\r\n";
     for (size_t i = 0; i < this->ch->members.size(); i++) {
         send(this->ch->members[i], join_msg.c_str(), join_msg.size(), 0);
     }
 
-    // --- PHASE 2: THE TOPIC (Numeric 332) ---
     std::string topic_msg = ":ircserv 332 " + c.nickname + " " + this->channel_name + " :Welcome to " + this->channel_name + "\r\n";
     send(c.fd, topic_msg.c_str(), topic_msg.size(), 0);
 
-    // --- PHASE 3: THE NAMES LIST (Numeric 353 & 366) ---
     std::string names = ":ircserv 353 " + c.nickname + " = " + this->channel_name + " :";
     for (size_t i = 0; i < this->ch->members.size(); i++) {
         int m_fd = this->ch->members[i];
-        
-        // Check if this member is an operator for the '@' prefix
+
         bool isOp = false;
         for (size_t j = 0; j < this->ch->operators.size(); j++) {
             if (this->ch->operators[j] == m_fd) isOp = true;
@@ -125,47 +117,51 @@ void managerchannel::handleJoin(const std::string &input, client &c)
     names += "\r\n";
     send(c.fd, names.c_str(), names.size(), 0);
 
-    // End of Names list
     std::string end_names = ":ircserv 366 " + c.nickname + " " + this->channel_name + " :End of /NAMES list.\r\n";
     send(c.fd, end_names.c_str(), end_names.size(), 0);
 }
 
-// to let ppl talk to each other and to know what is the new , private or public 
 void managerchannel::handlePrivmsg(const std::string &input, client &c)
 {
     std::stringstream scanner(input);
     std::string command, target;
 
-    // 1. Get the basic words
     if (!(scanner >> command >> target)) 
-        return; // Safety: Command was too short
+        return;
 
-    // 2. Find the message (The Scissors)
     size_t pos = input.find(':');
     if (pos == std::string::npos) 
-        return; // Safety: No message content found, ignore it.
+        return;
 
     std::string message_body = input.substr(pos);
 
-    // 3. Decide where it goes
     if (!target.empty() && target[0] == '#') 
     {
-        // --- CHANNEL BROADCAST ---
         std::map<std::string, Channel*>::iterator it = channels.find(target);
         
         if (it != channels.end()) 
         {
             Channel* room = it->second;
 
-            // PREPARE: Build the package once
-            std::string final_package = ":" + c.nickname + " PRIVMSG " + target + " " + message_body + "\r\n";
+            bool is_member = false;
+            for (size_t i = 0; i < room->members.size(); i++) {
+                if (room->members[i] == c.fd) {
+                    is_member = true;
+                    break;
+                }
+            }
 
-            // DELIVERY: The Loop
+            if (!is_member) {
+                std::string err = ":ircserv 442 " + c.nickname + " " + target + " :You're not on that channel\r\n";
+                send(c.fd, err.c_str(), err.size(), 0);
+                return; 
+            }
+
+            std::string final_package = ":" + c.nickname + " PRIVMSG " + target + " " + message_body + "\r\n";
+            
             for (size_t i = 0; i < room->members.size(); i++) 
             {
                 int recipient_fd = room->members[i];
-
-                // FILTER: No Echo
                 if (recipient_fd != c.fd) 
                 {
                     send(recipient_fd, final_package.c_str(), final_package.size(), 0);
@@ -174,14 +170,12 @@ void managerchannel::handlePrivmsg(const std::string &input, client &c)
         }
         else 
         {
-            // Error 403: Room not found
             std::string err = ":ircserv 403 " + c.nickname + " " + target + " :No such channel\r\n";
             send(c.fd, err.c_str(), err.size(), 0);
         }
     }
     else if (!target.empty())
     {
-        // --- PRIVATE MESSAGE (DM) ---
         bool found = false;
         std::map<int, client>::iterator it_client;
         
@@ -198,7 +192,6 @@ void managerchannel::handlePrivmsg(const std::string &input, client &c)
         
         if (!found)
         {
-            // Error 401: User not found
             std::string err = ":ircserv 401 " + c.nickname + " " + target + " :No such nick\r\n";
             send(c.fd, err.c_str(), err.size(), 0);
         }
@@ -248,7 +241,6 @@ void managerchannel::handlePart(const std::string &input, client &c)
     if (!(scanner >> command >> target))
         return;
 
-    // C++98 Cleaner: Remove trailing \r or \n
     while (!target.empty() && (target[target.size() - 1] == '\r' || target[target.size() - 1] == '\n'))
     {
         target.erase(target.size() - 1);
@@ -275,7 +267,6 @@ void managerchannel::handlePart(const std::string &input, client &c)
         {
             if (*vit == c.fd)
             {
-                // Prepare and Broadcast the PART message
                 std::string part_msg = ":" + c.nickname + "!" + c.username + "@localhost PART " + target + " " + reason + "\r\n";
                 
                 for (size_t i = 0; i < room->members.size(); i++)
@@ -283,7 +274,6 @@ void managerchannel::handlePart(const std::string &input, client &c)
                     send(room->members[i], part_msg.c_str(), part_msg.size(), 0);
                 }
 
-                // The Surgery: remove the user
                 room->members.erase(vit);
                 found = true;
                 break; 
