@@ -6,7 +6,7 @@
 /*   By: haitaabe <haitaabe@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/04/11 21:41:26 by haitaabe          #+#    #+#             */
-/*   Updated: 2026/04/17 11:53:32 by haitaabe         ###   ########.fr       */
+/*   Updated: 2026/04/17 16:43:31 by haitaabe         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,6 +39,10 @@ void managerchannel::handle_input(const std::string &input, client &c)
     if (input.compare(0,4,"QUIT") == 0)
     {
         handleQuit(input,c);
+    }
+    if (input.compare(0, 4, "KICK") == 0) 
+    {
+        handleKick(input, c);
     }
 }
 
@@ -329,4 +333,72 @@ void managerchannel::handleQuit(const std::string &input, client &c)
     }
 
     std::cout << "[QUIT] User " << c.nickname << " has left the server." << std::endl;
+}
+
+
+void managerchannel::handleKick(const std::string &input, client &c)
+{
+    std::stringstream ss(input);
+    std::string command, channel_name, target_nick, reason;
+
+    ss >> command >> channel_name >> target_nick;
+
+    size_t pos = input.find(target_nick);
+    if (pos != std::string::npos) {
+        pos += target_nick.length();
+        reason = input.substr(pos);
+    }
+    if (reason.empty() || reason == " ") reason = " :Kicked by operator";
+
+    std::map<std::string, Channel*>::iterator it = channels.find(channel_name);
+    if (it == channels.end()) {
+        std::string err = ":ircserv 403 " + c.nickname + " " + channel_name + " :No such channel\r\n";
+        send(c.fd, err.c_str(), err.size(), 0);
+        return;
+    }
+    Channel *room = it->second;
+
+    bool is_op = false;
+    for (size_t i = 0; i < room->operators.size(); i++) {
+        if (room->operators[i] == c.fd) {
+            is_op = true;
+            break;
+        }
+    }
+    if (!is_op) {
+        std::string err = ":ircserv 482 " + c.nickname + " " + channel_name + " :You're not channel operator\r\n";
+        send(c.fd, err.c_str(), err.size(), 0);
+        return;
+    }
+
+    std::vector<int>::iterator vit;
+    bool victim_found = false;
+    for (vit = room->members.begin(); vit != room->members.end(); ++vit) {
+        if (_clients[*vit].nickname == target_nick) {
+            int victim_fd = *vit;
+
+            std::string kick_msg = ":" + c.nickname + " KICK " + channel_name + " " + target_nick + " " + reason + "\r\n";
+
+            for (size_t i = 0; i < room->members.size(); i++) {
+                send(room->members[i], kick_msg.c_str(), kick_msg.size(), 0);
+            }
+
+            room->members.erase(vit);
+
+            for (std::vector<int>::iterator oit = room->operators.begin(); oit != room->operators.end(); ++oit) {
+                if (*oit == victim_fd) {
+                    room->operators.erase(oit);
+                    break;
+                }
+            }
+            
+            victim_found = true;
+            break; 
+        }
+    }
+
+    if (!victim_found) {
+        std::string err = ":ircserv 441 " + c.nickname + " " + target_nick + " " + channel_name + " :They aren't on that channel\r\n";
+        send(c.fd, err.c_str(), err.size(), 0);
+    }
 }
