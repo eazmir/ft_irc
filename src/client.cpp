@@ -6,7 +6,7 @@
 /*   By: haitaabe <haitaabe@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/04/11 21:41:26 by haitaabe          #+#    #+#             */
-/*   Updated: 2026/04/16 18:43:33 by haitaabe         ###   ########.fr       */
+/*   Updated: 2026/04/16 20:36:52 by haitaabe         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,6 +35,10 @@ void managerchannel::handle_input(const std::string &input, client &c)
     if (input.compare(0, 4, "PART") == 0)
     {
         handlePart(input, c);
+    }
+    if (input.compare(0,4,"QUIT") == 0)
+    {
+        handleQuit(input,c);
     }
 }
 
@@ -294,4 +298,45 @@ void managerchannel::handlePart(const std::string &input, client &c)
         std::string err = ":ircserv 403 " + c.nickname + " " + target + " :No such channel\r\n";
         send(c.fd, err.c_str(), err.size(), 0);
     }
+}
+
+
+
+void managerchannel::handleQuit(const std::string &input, client &c)
+{
+    std::stringstream scanner(input);
+    std::string command, reason;
+    
+    scanner >> command;
+
+    size_t pos = input.find(':');
+    if (pos != std::string::npos)
+        reason = input.substr(pos);
+    else
+        reason = ":Client Quit";
+
+    std::string quit_msg = ":" + c.nickname + "!" + c.username + "@localhost QUIT " + reason + "\r\n";
+
+    std::map<std::string, Channel*>::iterator it;
+    for (it = channels.begin(); it != channels.end(); ++it)
+    {
+        Channel* room = it->second;
+
+        for (std::vector<int>::iterator vit = room->members.begin(); vit != room->members.end(); ++vit)
+        {
+            if (*vit == c.fd)
+            {
+                for (size_t i = 0; i < room->members.size(); i++)
+                {
+                    send(room->members[i], quit_msg.c_str(), quit_msg.size(), 0);
+                }
+
+                room->members.erase(vit);
+
+                break; 
+            }
+        }
+    }
+
+    std::cout << "[QUIT] User " << c.nickname << " has left the server." << std::endl;
 }

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: eazmir <eazmir@student.42.fr>              +#+  +:+       +#+        */
+/*   By: haitaabe <haitaabe@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/18 11:09:17 by eazmir            #+#    #+#             */
-/*   Updated: 2026/04/11 16:21:03 by eazmir           ###   ########.fr       */
+/*   Updated: 2026/04/17 11:24:40 by haitaabe         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -173,11 +173,19 @@ void server::recv_data(size_t &index)
 void server::disconnect_client(size_t &index)
 {
     int fd = _pfds[index].fd;
+
+    std::map<int, client>::iterator it = _clients.find(fd);
+    if (it != _clients.end())
+    {
+        channel->handleQuit("QUIT :Remote host closed the connection", it->second);
+    }
     close(fd);
     _clients.erase(fd);
     _pfds.erase(_pfds.begin() + index);
-    std::cout << "Client disconnected FD: " << fd << std::endl;
+    
+    std::cout << "Client disconnected FD: " << fd << " (Channels cleaned)" << std::endl;
 }
+
 
 std::string server::Extract_data(client &c)
 {
