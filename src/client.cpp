@@ -6,7 +6,7 @@
 /*   By: haitaabe <haitaabe@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/04/11 21:41:26 by haitaabe          #+#    #+#             */
-/*   Updated: 2026/04/17 16:43:31 by haitaabe         ###   ########.fr       */
+/*   Updated: 2026/04/17 18:29:41 by haitaabe         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,9 +40,14 @@ void managerchannel::handle_input(const std::string &input, client &c)
     {
         handleQuit(input,c);
     }
-    if (input.compare(0, 4, "KICK") == 0) 
+    if (input.compare(0, 5, "KICK ") == 0 || input == "KICK") 
     {
         handleKick(input, c);
+    }
+
+    else if (input.compare(0, 6, "TOPIC ") == 0 || input == "TOPIC") 
+    {
+        handleTopic(input, c);
     }
 }
 
@@ -400,5 +405,61 @@ void managerchannel::handleKick(const std::string &input, client &c)
     if (!victim_found) {
         std::string err = ":ircserv 441 " + c.nickname + " " + target_nick + " " + channel_name + " :They aren't on that channel\r\n";
         send(c.fd, err.c_str(), err.size(), 0);
+    }
+}
+
+
+void managerchannel::handleTopic(const std::string &input, client &c) 
+{
+    std::stringstream ss(input);
+    std::string command, channel_name;
+    ss >> command >> channel_name;
+
+    if (channels.find(channel_name) == channels.end()) {
+        std::string err = ":ircserv 403 " + c.nickname + " " + channel_name + " :No such channel\r\n";
+        send(c.fd, err.c_str(), err.size(), 0);
+        return;
+    }
+    Channel *room = channels[channel_name];
+
+    bool is_member = false;
+    for (size_t i = 0; i < room->members.size(); i++) {
+        if (room->members[i] == c.fd) is_member = true;
+    }
+    if (!is_member) {
+        std::string err = ":ircserv 442 " + c.nickname + " " + channel_name + " :You're not on that channel\r\n";
+        send(c.fd, err.c_str(), err.size(), 0);
+        return;
+    }
+
+    size_t colon_pos = input.find(':');
+
+    if (colon_pos == std::string::npos) {
+        if (room->topic.empty()) {
+            std::string msg = ":ircserv 331 " + c.nickname + " " + channel_name + " :No topic is set\r\n";
+            send(c.fd, msg.c_str(), msg.size(), 0);
+        } else {
+            std::string msg = ":ircserv 332 " + c.nickname + " " + channel_name + " :" + room->topic + "\r\n";
+            send(c.fd, msg.c_str(), msg.size(), 0);
+        }
+        return;
+    }
+
+    if (room->topic_restricted) {
+        bool is_op = false;
+        for (size_t i = 0; i < room->operators.size(); i++) {
+            if (room->operators[i] == c.fd) is_op = true;
+        }
+        if (!is_op) {
+            std::string err = ":ircserv 482 " + c.nickname + " " + channel_name + " :You're not channel operator\r\n";
+            send(c.fd, err.c_str(), err.size(), 0);
+            return;
+        }
+    }
+
+    room->topic = input.substr(colon_pos + 1);
+    std::string broadcast = ":" + c.nickname + " TOPIC " + channel_name + " :" + room->topic + "\r\n";
+    for (size_t i = 0; i < room->members.size(); i++) {
+        send(room->members[i], broadcast.c_str(), broadcast.size(), 0);
     }
 }

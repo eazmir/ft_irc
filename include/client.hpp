@@ -6,7 +6,7 @@
 /*   By: haitaabe <haitaabe@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/04/11 21:39:58 by haitaabe          #+#    #+#             */
-/*   Updated: 2026/04/17 16:43:18 by haitaabe         ###   ########.fr       */
+/*   Updated: 2026/04/17 18:30:01 by haitaabe         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -59,6 +59,7 @@ class managerchannel
         void handlePart(const std::string &input, client &c);
         void handleQuit(const std::string &input, client &c);
         void handleKick(const std::string &input, client &c);
+        void handleTopic(const std::string &input, client &c);
 };
 Message parseMessage(const std::string &input);
 #endif
