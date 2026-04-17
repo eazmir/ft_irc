@@ -6,7 +6,7 @@
 /*   By: haitaabe <haitaabe@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/04/11 21:41:26 by haitaabe          #+#    #+#             */
-/*   Updated: 2026/04/17 18:29:41 by haitaabe         ###   ########.fr       */
+/*   Updated: 2026/04/17 19:06:48 by haitaabe         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,32 +22,42 @@ managerchannel::managerchannel(std::map<int, client> &clients,const std::string 
 void managerchannel::handle_input(const std::string &input, client &c)
 {
     this->auth.tryRegister(c,input);
-    if (input.compare(0,5,"PRINT") == 0)
+    if (input.compare(0, 5, "PRINT") == 0)
         Utils::printClientsInfo(_clients);
-    if (input.compare(0,4,"JOIN") == 0 || input.compare(0,3,"MSG") == 0)
+
+    else if (input.compare(0, 5, "JOIN ") == 0 || input == "JOIN") 
     {
-        handleJoin(input,c);
+        handleJoin(input, c);
     }
-    if (input.compare(0, 7, "PRIVMSG") == 0)
-    {
-        handlePrivmsg(input, c);
-    }
-    if (input.compare(0, 4, "PART") == 0)
+    else if (input.compare(0, 5, "PART ") == 0 || input == "PART")
     {
         handlePart(input, c);
     }
-    if (input.compare(0,4,"QUIT") == 0)
+    else if (input.compare(0, 5, "QUIT ") == 0 || input == "QUIT")
     {
-        handleQuit(input,c);
+        handleQuit(input, c);
     }
-    if (input.compare(0, 5, "KICK ") == 0 || input == "KICK") 
+
+    else if (input.compare(0, 8, "PRIVMSG ") == 0) 
+    {
+        handlePrivmsg(input, c);
+    }
+
+    else if (input.compare(0, 5, "KICK ") == 0 || input == "KICK") 
     {
         handleKick(input, c);
     }
-
     else if (input.compare(0, 6, "TOPIC ") == 0 || input == "TOPIC") 
     {
         handleTopic(input, c);
+    }
+    else if (input.compare(0, 7, "INVITE ") == 0 || input == "INVITE")
+    {
+        handleInvite(input, c);
+    }
+    else if (input.compare(0, 5, "MODE ") == 0 || input == "MODE") 
+    {
+        handleMode(input, c);
     }
 }
 
@@ -62,7 +72,7 @@ void test(std::vector<int> members)
 void managerchannel::handleJoin(const std::string &input, client &c)
 {
     if (!c.regestred) {
-        std::cout << "You are Not regestred !" << std::endl;
+        std::cout << "Error: Client not registered" << std::endl;
         return;
     }
 
@@ -73,16 +83,17 @@ void managerchannel::handleJoin(const std::string &input, client &c)
         local_tokens.push_back(token);
 
     if (local_tokens.size() < 2) {
-        std::cout << "Error: Not enough parameters" << std::endl;
+        std::string err = ":ircserv 461 " + c.nickname + " JOIN :Not enough parameters\r\n";
+        send(c.fd, err.c_str(), err.size(), 0);
         return;
     }
+    
     this->channel_name = local_tokens[1];
-
     this->it = channels.find(this->channel_name);
+
     if (it == channels.end()) {
         Channel *New_ch = new Channel();
-        New_ch->name = channel_name;
- 
+        New_ch->name = this->channel_name;
         New_ch->limit = 0;
         New_ch->invite_only = false;
         New_ch->topic_restricted = false;
@@ -94,6 +105,37 @@ void managerchannel::handleJoin(const std::string &input, client &c)
     }
     else {
         this->ch = it->second;
+
+        if (this->ch->invite_only) {
+            bool invited = false;
+            for (size_t i = 0; i < this->ch->invite_list.size(); i++) {
+                if (this->ch->invite_list[i] == c.nickname) {
+                    invited = true;
+                    this->ch->invite_list.erase(this->ch->invite_list.begin() + i);
+                    break;
+                }
+            }
+            if (!invited) {
+                std::string err = ":ircserv 473 " + c.nickname + " " + this->channel_name + " :Cannot join channel (+i)\r\n";
+                send(c.fd, err.c_str(), err.size(), 0);
+                return;
+            }
+        }
+
+        if (this->ch->limit > 0 && this->ch->members.size() >= (size_t)this->ch->limit) {
+            std::string err = ":ircserv 471 " + c.nickname + " " + this->channel_name + " :Cannot join channel (+l)\r\n";
+            send(c.fd, err.c_str(), err.size(), 0);
+            return;
+        }
+
+        if (!this->ch->password.empty()) {
+            if (local_tokens.size() < 3 || local_tokens[2] != this->ch->password) {
+                std::string err = ":ircserv 475 " + c.nickname + " " + this->channel_name + " :Cannot join channel (+k)\r\n";
+                send(c.fd, err.c_str(), err.size(), 0);
+                return;
+            }
+        }
+
         bool already_member = false;
         for (size_t i = 0; i < this->ch->members.size(); i++) {
             if (this->ch->members[i] == c.fd) already_member = true;
@@ -108,103 +150,6 @@ void managerchannel::handleJoin(const std::string &input, client &c)
         send(this->ch->members[i], join_msg.c_str(), join_msg.size(), 0);
     }
 
-    std::string topic_msg = ":ircserv 332 " + c.nickname + " " + this->channel_name + " :Welcome to " + this->channel_name + "\r\n";
-    send(c.fd, topic_msg.c_str(), topic_msg.size(), 0);
-
-    std::string names = ":ircserv 353 " + c.nickname + " = " + this->channel_name + " :";
-    for (size_t i = 0; i < this->ch->members.size(); i++) {
-        int m_fd = this->ch->members[i];
-
-        bool isOp = false;
-        for (size_t j = 0; j < this->ch->operators.size(); j++) {
-            if (this->ch->operators[j] == m_fd) isOp = true;
-        }
-
-        if (isOp) names += "@";
-        names += _clients[m_fd].nickname + " ";
-    }
-    names += "\r\n";
-    send(c.fd, names.c_str(), names.size(), 0);
-
-    std::string end_names = ":ircserv 366 " + c.nickname + " " + this->channel_name + " :End of /NAMES list.\r\n";
-    send(c.fd, end_names.c_str(), end_names.size(), 0);
-}
-
-void managerchannel::handlePrivmsg(const std::string &input, client &c)
-{
-    std::stringstream scanner(input);
-    std::string command, target;
-
-    if (!(scanner >> command >> target)) 
-        return;
-
-    size_t pos = input.find(':');
-    if (pos == std::string::npos) 
-        return;
-
-    std::string message_body = input.substr(pos);
-
-    if (!target.empty() && target[0] == '#') 
-    {
-        std::map<std::string, Channel*>::iterator it = channels.find(target);
-        
-        if (it != channels.end()) 
-        {
-            Channel* room = it->second;
-
-            bool is_member = false;
-            for (size_t i = 0; i < room->members.size(); i++) {
-                if (room->members[i] == c.fd) {
-                    is_member = true;
-                    break;
-                }
-            }
-
-            if (!is_member) {
-                std::string err = ":ircserv 442 " + c.nickname + " " + target + " :You're not on that channel\r\n";
-                send(c.fd, err.c_str(), err.size(), 0);
-                return; 
-            }
-
-            std::string final_package = ":" + c.nickname + " PRIVMSG " + target + " " + message_body + "\r\n";
-            
-            for (size_t i = 0; i < room->members.size(); i++) 
-            {
-                int recipient_fd = room->members[i];
-                if (recipient_fd != c.fd) 
-                {
-                    send(recipient_fd, final_package.c_str(), final_package.size(), 0);
-                }
-            }
-        }
-        else 
-        {
-            std::string err = ":ircserv 403 " + c.nickname + " " + target + " :No such channel\r\n";
-            send(c.fd, err.c_str(), err.size(), 0);
-        }
-    }
-    else if (!target.empty())
-    {
-        bool found = false;
-        std::map<int, client>::iterator it_client;
-        
-        for (it_client = _clients.begin(); it_client != _clients.end(); ++it_client)
-        {
-            if (it_client->second.nickname == target)
-            {
-                std::string final_package = ":" + c.nickname + " PRIVMSG " + target + " " + message_body + "\r\n";
-                send(it_client->first, final_package.c_str(), final_package.size(), 0);
-                found = true;
-                break; 
-            }
-        }
-        
-        if (!found)
-        {
-            std::string err = ":ircserv 401 " + c.nickname + " " + target + " :No such nick\r\n";
-            send(c.fd, err.c_str(), err.size(), 0);
-        }
-    }
 }
 
  Message parseMessage(const std::string &input)
@@ -461,5 +406,177 @@ void managerchannel::handleTopic(const std::string &input, client &c)
     std::string broadcast = ":" + c.nickname + " TOPIC " + channel_name + " :" + room->topic + "\r\n";
     for (size_t i = 0; i < room->members.size(); i++) {
         send(room->members[i], broadcast.c_str(), broadcast.size(), 0);
+    }
+}
+
+
+
+void managerchannel::handleInvite(const std::string &input, client &c) {
+    std::stringstream ss(input);
+    std::string command, target_nick, channel_name;
+    ss >> command >> target_nick >> channel_name;
+
+    if (target_nick.empty() || channel_name.empty()) {
+        std::string err = ":ircserv 461 " + c.nickname + " INVITE :Not enough parameters\r\n";
+        send(c.fd, err.c_str(), err.size(), 0);
+        return;
+    }
+
+    if (channels.find(channel_name) == channels.end()) {
+        std::string err = ":ircserv 403 " + c.nickname + " " + channel_name + " :No such channel\r\n";
+        send(c.fd, err.c_str(), err.size(), 0);
+        return;
+    }
+    Channel *room = channels[channel_name];
+
+    bool is_op = false;
+    for (size_t i = 0; i < room->operators.size(); i++) {
+        if (room->operators[i] == c.fd) is_op = true;
+    }
+    if (!is_op) {
+        std::string err = ":ircserv 482 " + c.nickname + " " + channel_name + " :You're not channel operator\r\n";
+        send(c.fd, err.c_str(), err.size(), 0);
+        return;
+    }
+
+    for (size_t i = 0; i < room->members.size(); i++) {
+        if (_clients[room->members[i]].nickname == target_nick) {
+            std::string err = ":ircserv 443 " + c.nickname + " " + target_nick + " " + channel_name + " :is already on channel\r\n";
+            send(c.fd, err.c_str(), err.size(), 0);
+            return;
+        }
+    }
+
+    room->invite_list.push_back(target_nick);
+
+    std::string confirm = ":ircserv 341 " + c.nickname + " " + target_nick + " " + channel_name + "\r\n";
+    send(c.fd, confirm.c_str(), confirm.size(), 0);
+
+    int target_fd = -1;
+
+    for (std::map<int, client>::iterator it = _clients.begin(); it != _clients.end(); ++it) {
+        if (it->second.nickname == target_nick) {
+            target_fd = it->first;
+            break;
+        }
+    }
+
+    if (target_fd != -1) {
+        std::string invite_msg = ":" + c.nickname + " INVITE " + target_nick + " :" + channel_name + "\r\n";
+        send(target_fd, invite_msg.c_str(), invite_msg.size(), 0);
+    }
+}
+
+void managerchannel::handleMode(const std::string &input, client &c) {
+    std::stringstream ss(input);
+    std::string command, target, modeString, param;
+    ss >> command >> target >> modeString;
+
+    if (target.empty() || target[0] != '#') return; 
+    
+    if (channels.find(target) == channels.end()) {
+        std::string err = ":ircserv 403 " + c.nickname + " " + target + " :No such channel\r\n";
+        send(c.fd, err.c_str(), err.size(), 0);
+        return;
+    }
+    Channel *room = channels[target];
+
+    bool is_op = false;
+    for (size_t i = 0; i < room->operators.size(); i++) {
+        if (room->operators[i] == c.fd) {
+            is_op = true;
+            break;
+        }
+    }
+
+    if (!is_op) {
+        std::string err = ":ircserv 482 " + c.nickname + " " + target + " :You're not channel operator\r\n";
+        send(c.fd, err.c_str(), err.size(), 0);
+        return;
+    }
+
+    bool adding = true; 
+    std::string appliedModes = "";
+    
+    for (size_t i = 0; i < modeString.length(); i++) {
+        char mode = modeString[i];
+        if (mode == '+') { adding = true; appliedModes += "+"; continue; }
+        if (mode == '-') { adding = false; appliedModes += "-"; continue; }
+
+        if (mode == 'i') {
+            room->invite_only = adding;
+            appliedModes += "i";
+        } 
+        else if (mode == 't') {
+            room->topic_restricted = adding;
+            appliedModes += "t";
+        }
+        else if (mode == 'k') {
+            if (adding) {
+                if (ss >> param) { 
+                    room->password = param;
+                    appliedModes += "k " + param + " ";
+                }
+            } else {
+                room->password = "";
+                appliedModes += "k";
+            }
+        }
+        else if (mode == 'l') {
+            if (adding) {
+                if (ss >> param) {
+                    room->limit = std::atoi(param.c_str());
+                    appliedModes += "l " + param + " ";
+                }
+            } else {
+                room->limit = 0;
+                appliedModes += "l";
+            }
+        }
+    }
+
+    if (!appliedModes.empty()) {
+        std::string mode_msg = ":" + c.nickname + " MODE " + target + " " + appliedModes + "\r\n";
+        for (size_t i = 0; i < room->members.size(); i++) {
+            send(room->members[i], mode_msg.c_str(), mode_msg.size(), 0);
+        }
+    }
+}
+
+
+void managerchannel::handlePrivmsg(const std::string &input, client &c) {
+    std::stringstream ss(input);
+    std::string command, target, message;
+    ss >> command >> target;
+
+    size_t pos = input.find(':', input.find(target));
+    if (pos != std::string::npos) {
+        message = input.substr(pos);
+    } else {
+        ss >> message;
+    }
+
+    if (target.empty() || message.empty()) return;
+
+    if (target[0] == '#') {
+        if (channels.find(target) != channels.end()) {
+            Channel *room = channels[target];
+            std::string full_msg = ":" + c.nickname + " PRIVMSG " + target + " " + message + "\r\n";
+
+            for (size_t i = 0; i < room->members.size(); i++) {
+                if (room->members[i] != c.fd) {
+                    send(room->members[i], full_msg.c_str(), full_msg.size(), 0);
+                }
+            }
+        }
+    } 
+    else {
+        for (std::map<int, client>::iterator it = _clients.begin(); it != _clients.end(); ++it) {
+            if (it->second.nickname == target) {
+                std::string full_msg = ":" + c.nickname + " PRIVMSG " + target + " " + message + "\r\n";
+                send(it->first, full_msg.c_str(), full_msg.size(), 0);
+                break;
+            }
+        }
     }
 }
