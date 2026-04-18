@@ -6,7 +6,7 @@
 /*   By: haitaabe <haitaabe@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/04/11 21:41:26 by haitaabe          #+#    #+#             */
-/*   Updated: 2026/04/17 19:06:48 by haitaabe         ###   ########.fr       */
+/*   Updated: 2026/04/18 15:44:03 by haitaabe         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -546,23 +546,36 @@ void managerchannel::handleMode(const std::string &input, client &c) {
 
 void managerchannel::handlePrivmsg(const std::string &input, client &c) {
     std::stringstream ss(input);
-    std::string command, target, message;
+    std::string command, target;
     ss >> command >> target;
 
+    // 1. Locate the message start
     size_t pos = input.find(':', input.find(target));
+    std::string message;
     if (pos != std::string::npos) {
-        message = input.substr(pos);
+        message = input.substr(pos); 
     } else {
-        ss >> message;
+        // Fallback if the user forgot the colon
+        ss >> message; 
     }
 
     if (target.empty() || message.empty()) return;
 
+    // 2. The Protocol Shield (512-byte limit)
+    // We format the message and ensure it doesn't exceed 510 chars (+ \r\n)
+    std::string prefix = ":" + c.nickname + " PRIVMSG " + target + " ";
+    std::string full_msg = prefix + message;
+    
+    if (full_msg.size() > 510) {
+        full_msg = full_msg.substr(0, 510);
+    }
+    full_msg += "\r\n";
+
+    // 3. Routing
     if (target[0] == '#') {
         if (channels.find(target) != channels.end()) {
             Channel *room = channels[target];
-            std::string full_msg = ":" + c.nickname + " PRIVMSG " + target + " " + message + "\r\n";
-
+            // Broadcast to everyone else in the channel
             for (size_t i = 0; i < room->members.size(); i++) {
                 if (room->members[i] != c.fd) {
                     send(room->members[i], full_msg.c_str(), full_msg.size(), 0);
@@ -571,9 +584,9 @@ void managerchannel::handlePrivmsg(const std::string &input, client &c) {
         }
     } 
     else {
+        // Private Message to a user
         for (std::map<int, client>::iterator it = _clients.begin(); it != _clients.end(); ++it) {
             if (it->second.nickname == target) {
-                std::string full_msg = ":" + c.nickname + " PRIVMSG " + target + " " + message + "\r\n";
                 send(it->first, full_msg.c_str(), full_msg.size(), 0);
                 break;
             }

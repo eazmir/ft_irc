@@ -6,7 +6,7 @@
 /*   By: haitaabe <haitaabe@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/18 11:09:01 by eazmir            #+#    #+#             */
-/*   Updated: 2026/04/18 15:38:16 by haitaabe         ###   ########.fr       */
+/*   Updated: 2026/04/18 15:45:11 by haitaabe         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -41,7 +41,6 @@ class authentication;
 ///////////////////////////////////////////////////////////
 struct client
 {
-    std::string buffer;      // don,t care about this, just for storing incoming data until we get a full line
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////
     int         fd;          // File descriptor (socket)
     int         status;      // Status code, can define 0=connected, 1=authenticated, etc.
