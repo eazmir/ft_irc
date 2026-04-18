@@ -9,9 +9,13 @@ DIR_SRC  = src
 FILES = \
 	$(DIR_MAIN)/main.cpp \
 	$(DIR_SRC)/server.cpp\
-	$(DIR_SRC)/client.cpp \
 	$(DIR_SRC)/utls.cpp\
 	$(DIR_SRC)/authentication.cpp\
+	$(DIR_SRC)/channels/channel_manager.cpp\
+	$(DIR_SRC)/channels/channel_join_part.cpp\
+	$(DIR_SRC)/channels/channel_message.cpp\
+	$(DIR_SRC)/channels/channel_modes.cpp\
+	$(DIR_SRC)/channels/channel_operators.cpp\
 
 OBJS = $(FILES:.cpp=.o)
 
