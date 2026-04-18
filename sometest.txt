@@ -3,4 +3,7 @@
 
 
 #some iportant stuff to do 
+----------- 
 test modes and KICK , PART , QUIT, JOIN
+-----------------------
+need to understand SERVER how it works under the hood
