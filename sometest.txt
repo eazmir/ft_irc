@@ -1,1 +1,6 @@
 #handled large text PRIMSG
+
+
+
+#some iportant stuff to do 
+test modes and KICK , PART , QUIT, JOIN
