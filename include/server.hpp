@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   server.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: eazmir <eazmir@student.42.fr>              +#+  +:+       +#+        */
+/*   By: haitaabe <haitaabe@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/18 11:09:01 by eazmir            #+#    #+#             */
-/*   Updated: 2026/04/11 16:18:18 by eazmir           ###   ########.fr       */
+/*   Updated: 2026/04/18 15:38:16 by haitaabe         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -49,6 +49,7 @@ struct client
     bool        user_ok;     // USER command received
     bool        nick_ok;     // NICK command received
     bool        regestred;   // Fully registered (passed all checks)
+    std::string buffer;
 
     std::string nickname;    // Client's nickname
     std::string username;    // Client's username
