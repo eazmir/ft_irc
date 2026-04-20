@@ -6,7 +6,7 @@
 /*   By: haitaabe <haitaabe@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/18 11:09:01 by eazmir            #+#    #+#             */
-/*   Updated: 2026/04/18 15:45:11 by haitaabe         ###   ########.fr       */
+/*   Updated: 2026/04/20 17:22:39 by haitaabe         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -49,7 +49,6 @@ struct client
     bool        nick_ok;     // NICK command received
     bool        regestred;   // Fully registered (passed all checks)
     std::string buffer;
-
     std::string nickname;    // Client's nickname
     std::string username;    // Client's username
     std::string hostname;    // Client's hostname (optional, from getpeername)

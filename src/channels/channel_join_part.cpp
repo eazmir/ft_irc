@@ -14,6 +14,8 @@
 #include "../../include/utls.hpp"
 #include "../../include/server.hpp"
 
+
+
 void managerchannel::handleJoin(const std::string &input, client &c)
 {
     if (!c.regestred) {
@@ -138,6 +140,11 @@ void managerchannel::handlePart(const std::string &input, client &c)
                 }
 
                 room->members.erase(vit);
+                if (room->members.empty()) 
+                {
+                    delete room; 
+                    channels.erase(it); // Remove it from the map too
+                }
                 found = true;
                 break; 
             }
@@ -168,10 +175,11 @@ void managerchannel::handleQuit(const std::string &input, client &c)
 
     std::string quit_msg = ":" + c.nickname + "!" + c.username + "@localhost QUIT " + reason + "\r\n";
 
-    std::map<std::string, Channel*>::iterator it;
-    for (it = channels.begin(); it != channels.end(); ++it)
+    std::map<std::string, Channel*>::iterator it = channels.begin();
+    while (it != channels.end())
     {
         Channel* room = it->second;
+        // REMOVED: bool user_found_in_room = false;
 
         for (std::vector<int>::iterator vit = room->members.begin(); vit != room->members.end(); ++vit)
         {
@@ -179,15 +187,26 @@ void managerchannel::handleQuit(const std::string &input, client &c)
             {
                 for (size_t i = 0; i < room->members.size(); i++)
                 {
-                    send(room->members[i], quit_msg.c_str(), quit_msg.size(), 0);
+                    if (room->members[i] != c.fd)
+                        send(room->members[i], quit_msg.c_str(), quit_msg.size(), 0);
                 }
-
                 room->members.erase(vit);
-
+                // REMOVED: user_found_in_room = true;
                 break; 
             }
         }
-    }
 
+        if (room->members.empty()) 
+        {
+            delete room; 
+            std::map<std::string, Channel*>::iterator to_erase = it;
+            ++it;
+            channels.erase(to_erase); 
+        }
+        else 
+        {
+            ++it;
+        }
+    }
     std::cout << "[QUIT] User " << c.nickname << " has left the server." << std::endl;
 }
