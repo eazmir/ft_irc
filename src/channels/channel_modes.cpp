@@ -45,7 +45,8 @@ void managerchannel::handleMode(const std::string &input, client &c) {
     bool adding = true; 
     std::string appliedModes = "";
     
-    for (size_t i = 0; i < modeString.length(); i++) {
+    for (size_t i = 0; i < modeString.length(); i++) 
+    {
         char mode = modeString[i];
         if (mode == '+') { adding = true; appliedModes += "+"; continue; }
         if (mode == '-') { adding = false; appliedModes += "-"; continue; }
@@ -80,6 +81,32 @@ void managerchannel::handleMode(const std::string &input, client &c) {
                 appliedModes += "l";
             }
         }
+        // Inside the mode loop for 'o'
+        else if (mode == 'o') {
+            if (ss >> param) {
+                int target_fd = -1;
+                for (std::map<int, client>::iterator it = _clients.begin(); it != _clients.end(); ++it) {
+                    if (it->second.nickname == param) {
+                        target_fd = it->first;
+                        break;
+                    }
+                }
+                if (target_fd != -1) {
+                    if (adding) {
+                        bool already_op = false;
+                        for(size_t j=0; j < room->operators.size(); j++) 
+                            if(room->operators[j] == target_fd) already_op = true;
+                        if (!already_op) room->operators.push_back(target_fd);
+                    } else {
+                        for (std::vector<int>::iterator oit = room->operators.begin(); oit != room->operators.end(); ++oit) {
+                            if (*oit == target_fd) { room->operators.erase(oit); break; }
+                        }
+                    }
+                    appliedModes += (adding ? "+o " : "-o ") + param + " ";
+                }
+            }
+        }
+        
     }
 
     if (!appliedModes.empty()) {

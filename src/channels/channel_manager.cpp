@@ -22,44 +22,29 @@ managerchannel::managerchannel(std::map<int, client> &clients,const std::string 
 
 void managerchannel::handle_input(const std::string &input, client &c)
 {
-    this->auth.tryRegister(c,input);
-    if (input.compare(0, 5, "PRINT") == 0)
-        Utils::printClientsInfo(_clients);
-
-    else if (input.compare(0, 5, "JOIN ") == 0 || input == "JOIN") 
-    {
-        handleJoin(input, c);
-    }
-    else if (input.compare(0, 5, "PART ") == 0 || input == "PART")
-    {
-        handlePart(input, c);
-    }
-    else if (input.compare(0, 5, "QUIT ") == 0 || input == "QUIT")
-    {
-        handleQuit(input, c);
+    if (input.empty()) return;
+    
+    if (!c.regestred) {
+        this->auth.tryRegister(c, input);
+        return; 
     }
 
-    else if (input.compare(0, 8, "PRIVMSG ") == 0) 
-    {
-        handlePrivmsg(input, c);
-    }
+    std::stringstream ss(input);
+    std::string cmd;
+    ss >> cmd;
 
-    else if (input.compare(0, 5, "KICK ") == 0 || input == "KICK") 
-    {
-        handleKick(input, c);
-    }
-    else if (input.compare(0, 6, "TOPIC ") == 0 || input == "TOPIC") 
-    {
-        handleTopic(input, c);
-    }
-    else if (input.compare(0, 7, "INVITE ") == 0 || input == "INVITE")
-    {
-        handleInvite(input, c);
-    }
-    else if (input.compare(0, 5, "MODE ") == 0 || input == "MODE") 
-    {
-        handleMode(input, c);
-    }
+    for (size_t i = 0; i < cmd.size(); i++) 
+        cmd[i] = toupper(cmd[i]);
+
+    if (cmd == "JOIN")         handleJoin(input, c);
+    else if (cmd == "PART")    handlePart(input, c);
+    else if (cmd == "QUIT")    handleQuit(input, c);
+    else if (cmd == "PRIVMSG") handlePrivmsg(input, c);
+    else if (cmd == "KICK")    handleKick(input, c);
+    else if (cmd == "MODE")    handleMode(input, c);
+    else if (cmd == "TOPIC")   handleTopic(input, c);
+    else if (cmd == "INVITE")  handleInvite(input, c);
+    else if (cmd == "PRINT")   Utils::printClientsInfo(_clients);
 }
 
 Message parseMessage(const std::string &input)

@@ -6,7 +6,7 @@
 /*   By: haitaabe <haitaabe@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/04/11 21:41:46 by haitaabe          #+#    #+#             */
-/*   Updated: 2026/04/11 21:41:47 by haitaabe         ###   ########.fr       */
+/*   Updated: 2026/04/21 18:46:09 by haitaabe         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,20 +15,15 @@
 
 std::string Utils::strTrim(const std::string &str) 
 {
-    size_t start = 0;
-    size_t end = str.size();
-    
-    if (str[start] != ' ' || str[start] != '\t')
-        return ""; 
-    // Trim start
-    while (start < end && (str[start] == ' ' || str[start] == '\t'))
-        start++;
-    // Trim end
-    while (end > start && (str[end - 1] == ' ' || str[end - 1] == '\t'))
-        end--;
-    return (str.substr(start, end - start));
-}
+    size_t start = str.find_first_not_of(" \t\r\n");
 
+    if (start == std::string::npos) 
+        return ""; 
+
+    size_t end = str.find_last_not_of(" \t\r\n");
+
+    return (str.substr(start, end - start + 1));
+}
 
 void Utils::printClientsInfo(const std::map<int, client> &clients)
 {
