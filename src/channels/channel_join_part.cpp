@@ -15,11 +15,10 @@
 #include "../../include/server.hpp"
 
 
-
 void managerchannel::handleJoin(const std::string &input, client &c)
 {
     if (!c.regestred) {
-        std::cout << "Error: Client not registered" << std::endl;
+        std::cout << "Error: Client not registered!" << std::endl;
         return;
     }
 
