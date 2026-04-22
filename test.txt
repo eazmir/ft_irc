@@ -1,1 +1,7 @@
 For testing our project
+
+pass our_pass
+nick our_nick
+user our_nick
+
+PART #channel_name nick_name : message
