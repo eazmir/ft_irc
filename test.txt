@@ -1,7 +1,38 @@
 For testing our project
 
+
+--------------DONE-------------------------------
 pass our_pass
 nick our_nick
 user our_nick
+-------------------------------------------------
 
-PART #channel_name nick_name : message
+
+
+----------------DONE-----------------------------
+JOIN #name_of_channel
+-------------------------------------------------
+
+
+
+-----------------DONE--------------------------
+INVITE simo #morocco
+----------------------------------------------
+
+
+
+
+
+
+
+
+-----------------DONE----------------------------
+PRIVATE_MESSAGE
+PRIVMSG ahmed :hey (one - one)
+PRIVMSG #morocco :hey (for the whole channel)
+---------------------------------------------------
+
+
+
+
+we are testing INVITE right now :

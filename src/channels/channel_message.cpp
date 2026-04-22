@@ -19,66 +19,67 @@ void managerchannel::handlePrivmsg(const std::string &input, client &c) {
     std::string command, target;
     ss >> command >> target;
 
-    // 1. Locate the message start (handling the colon correctly)
+    if (target.empty()) return;
+
     size_t pos = input.find(':', input.find(target));
     std::string message;
+
     if (pos != std::string::npos) {
-        message = input.substr(pos); 
-    } else {
-        // Fallback for non-standard clients
-        ss >> message; 
+        message = input.substr(pos + 1); 
+    } 
+    else {
+        size_t target_pos = input.find(target);
+        message = input.substr(target_pos + target.length());
+        size_t first_char = message.find_first_not_of(" \t");
+        if (first_char != std::string::npos)
+            message = message.substr(first_char);
     }
 
-    if (target.empty() || message.empty()) return;
+    if (message.empty()) return;
 
-    // 2. The Protocol Shield (Strict 512-byte IRC limit)
-    std::string prefix = ":" + c.nickname + " PRIVMSG " + target + " ";
-    std::string full_msg = prefix + message;
-    
-    if (full_msg.size() > 510) {
-        full_msg = full_msg.substr(0, 510);
-    }
+    // Formatting for the IRC client
+    std::string full_msg = ":" + c.nickname + " PRIVMSG " + target + " :" + message;
+    if (full_msg.size() > 510) full_msg = full_msg.substr(0, 510);
     full_msg += "\r\n";
 
-    // 3. Routing & Security Gates
     if (target[0] == '#') {
-        // --- CHANNEL BROADCAST ---
+        // CHANNEL LOGIC
         if (channels.find(target) != channels.end()) {
             Channel *room = channels[target];
-
-            // SECURITY CHECK: Is the sender actually IN this channel?
             bool is_member = false;
             for (size_t i = 0; i < room->members.size(); i++) {
-                if (room->members[i] == c.fd) {
-                    is_member = true;
-                    break;
-                }
+                if (room->members[i] == c.fd) { is_member = true; break; }
             }
 
             if (!is_member) {
-                // Error 404: Cannot send to channel (they were likely KICKED or PARTED)
                 std::string err = ":ircserv 404 " + c.nickname + " " + target + " :Cannot send to channel\r\n";
                 send(c.fd, err.c_str(), err.size(), 0);
                 return;
             }
 
-            // Broadcast to everyone EXCEPT the sender
             for (size_t i = 0; i < room->members.size(); i++) {
                 if (room->members[i] != c.fd) {
                     send(room->members[i], full_msg.c_str(), full_msg.size(), 0);
                 }
             }
         } else {
-            // Error 401: No such channel
             std::string err = ":ircserv 401 " + c.nickname + " " + target + " :No such nick/channel\r\n";
             send(c.fd, err.c_str(), err.size(), 0);
         }
     } 
     else {
-        // --- PRIVATE MESSAGE TO USER ---
+        // PRIVATE MESSAGE LOGIC
         bool found = false;
+        
+        // Convert target to uppercase for case-insensitive search
+        std::string targetUpper = target;
+        for (size_t i = 0; i < targetUpper.size(); i++) targetUpper[i] = toupper(targetUpper[i]);
+
         for (std::map<int, client>::iterator it = _clients.begin(); it != _clients.end(); ++it) {
-            if (it->second.nickname == target) {
+            std::string currentNickUpper = it->second.nickname;
+            for (size_t i = 0; i < currentNickUpper.size(); i++) currentNickUpper[i] = toupper(currentNickUpper[i]);
+
+            if (currentNickUpper == targetUpper) {
                 send(it->first, full_msg.c_str(), full_msg.size(), 0);
                 found = true;
                 break;
@@ -86,7 +87,7 @@ void managerchannel::handlePrivmsg(const std::string &input, client &c) {
         }
         
         if (!found) {
-            // Error 401: User not found (they likely QUIT)
+            std::cout << "[DEBUG] Private target not found: " << target << std::endl;
             std::string err = ":ircserv 401 " + c.nickname + " " + target + " :No such nick/channel\r\n";
             send(c.fd, err.c_str(), err.size(), 0);
         }
