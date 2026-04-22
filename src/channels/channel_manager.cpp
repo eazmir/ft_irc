@@ -41,7 +41,7 @@ void managerchannel::handle_input(const std::string &input, client &c)
     else if (cmd == "QUIT")    handleQuit(input, c);
     else if (cmd == "PRIVMSG") handlePrivmsg(input, c);
     else if (cmd == "KICK")    handleKick(input, c);
-    else if (cmd == "MODE")    handleMode(input, c);
+    else if (cmd == "MODE") handleMode(input, c);
     else if (cmd == "TOPIC")   handleTopic(input, c);
     else if (cmd == "INVITE")  handleInvite(input, c);
     else if (cmd == "PRINT")   Utils::printClientsInfo(_clients);
