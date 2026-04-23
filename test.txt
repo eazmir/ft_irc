@@ -56,3 +56,12 @@ MODES
 +l :   MODE #morocco +l 2 , set the limit
 +o : to give someone else the operators
 +t : no one can change the topic just the operators
+
+
+
+
+-i 
+-k 
+-l
+-o 
+-t
