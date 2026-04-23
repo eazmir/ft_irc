@@ -45,3 +45,14 @@ we are done with INVITE command.
 TOPIC 
 MODE #channle_name +t : to avoid non-operators can change the TOPIC
 -------------------------------------------------------------------
+
+
+
+
+MODES
+
++i : done with it , just invite only
++k : done with it , change the password
++l :   MODE #morocco +l 2 , set the limit
++o : to give someone else the operators
++t : no one can change the topic just the operators
