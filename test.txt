@@ -35,4 +35,6 @@ PRIVMSG #morocco :hey (for the whole channel)
 
 
 
-we are testing INVITE right now :
+---------------DONE-----------------------------
+we are done with INVITE command.
+------------------------------------------------
