@@ -38,3 +38,10 @@ PRIVMSG #morocco :hey (for the whole channel)
 ---------------DONE-----------------------------
 we are done with INVITE command.
 ------------------------------------------------
+
+
+
+---------------------DONE-----------------------------------------
+TOPIC 
+MODE #channle_name +t : to avoid non-operators can change the TOPIC
+-------------------------------------------------------------------
