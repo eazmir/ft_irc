@@ -11,10 +11,18 @@
 /* ************************************************************************** */
 
 #include "../include/server.hpp"
+#include "../include/utls.hpp"
 
 int	main(int argc, char *argv[])
 {
-	if (argc != 3)
-		return (0);
-	server server(std::atoi(argv[1]), argv[2]);
+	try
+	{
+		if (argc != 3)
+			throw std::runtime_error("./ircserv <port> <password>");
+		server server(Utils::validatePort(argv[1]), argv[2]);
+	}
+	catch(const std::exception& e)
+	{
+		std::cerr << e.what() << '\n';
+	}	
 }

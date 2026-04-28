@@ -96,7 +96,7 @@ void managerchannel::handleTopic(const std::string &input, client &c)
 
     bool is_member = false;
     for (size_t i = 0; i < room->members.size(); i++) {
-        if (room->members[i] == c.fd) { is_member = true; break; }
+        if (room->members[i] == c.fd) is_member = true;
     }
     if (!is_member) {
         std::string err = ":ircserv 442 " + c.nickname + " " + channel_name + " :You're not on that channel\r\n";
@@ -117,13 +117,11 @@ void managerchannel::handleTopic(const std::string &input, client &c)
         return;
     }
 
-
     if (room->topic_restricted) {
         bool is_op = false;
         for (size_t i = 0; i < room->operators.size(); i++) {
-            if (room->operators[i] == c.fd) { is_op = true; break; }
+            if (room->operators[i] == c.fd) is_op = true;
         }
-
         if (!is_op) {
             std::string err = ":ircserv 482 " + c.nickname + " " + channel_name + " :You're not channel operator\r\n";
             send(c.fd, err.c_str(), err.size(), 0);
@@ -132,7 +130,6 @@ void managerchannel::handleTopic(const std::string &input, client &c)
     }
 
     room->topic = input.substr(colon_pos + 1);
-
     std::string broadcast = ":" + c.nickname + " TOPIC " + channel_name + " :" + room->topic + "\r\n";
     for (size_t i = 0; i < room->members.size(); i++) {
         send(room->members[i], broadcast.c_str(), broadcast.size(), 0);

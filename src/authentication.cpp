@@ -6,118 +6,158 @@
 /*   By: haitaabe <haitaabe@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/21 00:47:05 by eazmir            #+#    #+#             */
-/*   Updated: 2026/04/21 18:53:37 by haitaabe         ###   ########.fr       */
+/*   Updated: 2026/04/28 10:40:02 by haitaabe         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../include/server.hpp"
 #include "../include/utls.hpp"
 
-authentication::authentication():status(false)
+authentication::authentication()
 {}
 
 authentication::authentication(std::string pass):_serverPassword(pass)
 {}
 
-void authentication::handlePass(client &c,const std::string &pass)
+
+int authentication::handlePass(client &c,const std::string &pass)
 {
-    if (c.regestred)
-        return;
+    std::vector<std::string> args;
+    std::stringstream  tokens(pass);
+    std::string token;
+    //connect <ip> <port> <password>;
     
-    if (pass.empty())
-        return;
-    if (pass != _serverPassword)
+    while (tokens >> token)
+        args.push_back(token);
+    
+    if (args[1] != c.ip)
     {
-        const char* msg = "464 :Password incorrect\r\n";
-        if (send(c.fd, msg, strlen(msg), 0) < 0)
-            perror("send");
-        return;
+        std::string err = ":ircserv 464 * :IP incorrect\r\n";
+        send(c.fd, err.c_str(), err.size(), 0);
+        return (0);
     }
+    else if (std::atoi(args[2].c_str()) != c.port)
+    {
+        std::string err = ":ircserv 464 * :Port incorrect\r\n";
+        send(c.fd, err.c_str(), err.size(), 0);
+        return (0);
+    }
+    else  if (args[3] != _serverPassword)
+    {
+        std::string err = ":ircserv 464 * :Password incorrect\r\n";
+        send(c.fd, err.c_str(), err.size(), 0);
+        return (0);
+    }
+    Utils::sendAuthWelcome(c);
     c.pass_ok = true;
+    return (1);
 }
 
-void authentication::handleUser(client &c,const std::string &user)
+int authentication::handleUser(client &c,const std::string &user)
 {
     if (c.regestred)
-        return;
-    if (user.empty())
-        return;
-    if (user != c.username) 
-        c.username = user;
+        return (0);
+    else if (user.size() > 10)
+    {
+        std::string err = ":ircserv 432 * USER :Invalid username length (max 10)\r\n";
+        send(c.fd, err.c_str(), err.size(), 0);
+        return (0);
+    }
+    c.username = user;
     c.user_ok = true;
+    return (1);
 }
 
-void authentication::handleNick(client &c,const std::string &nick)
+int authentication::handleNick(client &c,const std::string &nick)
 {
     if (c.regestred)
-        return; 
-    if (nick.empty())
-        return;
-    if (nick != c.nickname)
-        c.nickname = nick;
+        return(0);
+    else if (nick.size() > 9)
+    {
+        std::string err = ":ircserv 432 * NICK :Invalid Nickname length (max 9)\r\n";
+        send(c.fd, err.c_str(), err.size(), 0);
+        return(0);
+    }
+    else if (c.nickname == nick)
+    {
+        std::string err = ":ircserv 433 * " + (c.nickname.empty() ? "*" : c.nickname) + " :Nickname is already in use\r\n";
+        send(c.fd, err.c_str(), err.size(), 0);
+        return (0);
+    }
+    c.nickname = nick;
     c.nick_ok = true;
+    return (1);
 }
 
-std::string authentication::Extract_data(const std::string &data)
+void authentication::tryRegister(client &c,const std::string &input)
 {
-    size_t pos = data.find(':');
-    if (pos == std::string::npos)
-        return "";
-    return (data.substr(pos + 1));
-}
-
-void authentication::tryRegister(client &c, const std::string &input) 
-{
+    std::vector<std::string> arg;
     std::stringstream ss(input);
-    std::string cmd, arg;
-    
-    ss >> cmd;
-    ss >> arg;
+    std::string name;
+    std::string str;
+    std::string cmd;
 
-    for (size_t i = 0; i < cmd.size(); i++) cmd[i] = toupper(cmd[i]);
+    while (ss >> str)
+        arg.push_back(str);
 
-    if (cmd == "PASS") {
-        if (arg == _serverPassword) {
-            c.pass_ok = true;
-        } else {
-            std::string err = ":ircserv 464 " + (c.nickname.empty() ? "*" : c.nickname) + " :Password incorrect\r\n";
-            send(c.fd, err.c_str(), err.size(), 0);
-        }
-    } 
-    else if (cmd == "NICK") {
-        if (!arg.empty()) {
-            c.nickname = arg;
-            c.nick_ok = true;
-        }
-    } 
-    else if (cmd == "USER") {
-        if (!arg.empty()) {
-            c.username = arg;
-            c.user_ok = true;
-        }
+    cmd = arg[0];
+    if (cmd.empty())
+        return;
+    if (arg.size() < 2)
+    {
+        std::string err = ":ircserv 461 * " + cmd + ": cannot be empty\r\n";
+        send(c.fd, err.c_str(), err.size(), 0);
+        return;
     }
-
-    if (c.nick_ok && c.pass_ok && c.user_ok && !c.regestred) {
-        c.regestred = true;
-        this->send_welcome(c);
+    else if (cmd == "/user")
+    {
+        // if (arg.size() < 5)
+        // {
+        //     std::string err = ":ircserv 461 * USER :Not enough parameters\r\n";
+        //     send(c.fd, err.c_str(), err.size(), 0);
+        //     return;
+        // }
+        if (!handleUser(c,arg[1]))
+            return;
+        name = Extract_user(arg);
+        c.realname = name;
     }
+    else if (cmd == "/nick")
+    {
+        if (!handleNick(c,arg[1]))
+            return;
+    }
+    checkRegistration(c);
 }
-void authentication::send_welcome(client &c)
+
+std::string authentication::Extract_user(const std::vector<std::string> &args)
 {
-    std::string msg; 
-    msg = std::string(":ircserv 001 ") + c.nickname +
-      " :Welcome to the IRC Network, " +
-      c.username + "!\r\n" + '\n'; 
-    send(c.fd,msg.c_str(),strlen(msg.c_str()),1);
+    if (args.empty())
+        return ("");
+    std::string name;
+    for (size_t i = 0; i < args.size(); i++)
+    {
+        if (args[i][0] == ':')
+        {
+            name = args[i].substr(1);
+            for (size_t j = i + 1; j < args.size(); j++)
+            {
+                if (!name.empty())
+                    name += " ";
+                name += args[j];             
+            }
+            break;                       
+        }
+    }
+    return (name);
 }
 
 void authentication::checkRegistration(client &c)
 {
-    if (c.nick_ok && c.pass_ok && c.user_ok && status)
+    if (c.nick_ok && c.pass_ok && c.user_ok)
     {
-        
-        this->send_welcome(c);
+        Utils::send_welcome(c);
+        Utils::sendAuthWelcome(c);
         c.regestred = true;
-        this->status = false;
     }
 }

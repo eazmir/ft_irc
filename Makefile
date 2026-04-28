@@ -1,3 +1,6 @@
+COLOR_RESET = \033[0m
+COLOR_GRAY = \033[0;30m
+
 CXX = c++
 CXXFLAGS = -Wall -Wextra -Werror -std=c++98
 
@@ -22,13 +25,18 @@ OBJS = $(FILES:.cpp=.o)
 all: $(NAME)
 
 $(NAME): $(OBJS)
-	$(CXX) $(CXXFLAGS) $(OBJS) -o $(NAME)
-	./$(NAME) 4444 0000
+	@$(CXX) $(CXXFLAGS) $(OBJS) -o $(NAME)
+# 	./$(NAME) 4444 0000
+%.o: %.cpp
+	@printf "$(COLOR_GRAY)"
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+	@printf "$(COLOR_RESET)"
+
 clean:
-	rm -f $(OBJS)
+	@rm -f $(OBJS)
 
 fclean: clean
-	rm -f $(NAME)
+	@rm -f $(NAME)
 
 re: fclean all
 

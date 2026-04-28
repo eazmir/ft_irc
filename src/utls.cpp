@@ -25,38 +25,149 @@ std::string Utils::strTrim(const std::string &str)
     return (str.substr(start, end - start + 1));
 }
 
-void Utils::printClientsInfo(const std::map<int, client> &clients)
+int Utils::check_port(const std::string& port)
 {
-    if (clients.empty())
+    if (port.empty())
+        return (-1);
+    for (size_t i = 0; i < port.size(); i++) 
     {
-        std::cout << "No clients connected" << std::endl;
-        return;
+        if (!std::isdigit(port[i]))
+            return (-1);
     }
-    std::cout << std::left;
-    std::cout << "----------------------------------------------------------"
-              << std::endl;
-    std::cout << "| " << std::setw(4)  << "FD"
-              << "| " << std::setw(5)  << "Pass"
-              << "| " << std::setw(5)  << "User"
-              << "| " << std::setw(5)  << "Nick"
-              << "| " << std::setw(4)  << "Reg"
-              << "| " << std::setw(10) << "Nickname"
-              << "| " << std::setw(10) << "Username"
-              << "|" << std::endl;
-
-    std::cout << "----------------------------------------------------------"
-              << std::endl;
-    for (std::map<int, client>::const_iterator it = clients.begin(); it != clients.end(); ++it)
-    {
-        const client &c = it->second;
-
-        std::cout << "| " << std::setw(4)  << it->first
-                  << "| " << std::setw(5)  << c.pass_ok
-                  << "| " << std::setw(5)  << c.user_ok
-                  << "| " << std::setw(5)  << c.nick_ok
-                  << "| " << std::setw(4)  << c.regestred
-                  << "| " << std::setw(10) << c.nickname
-                  << "| " << std::setw(10) << c.username
-                  << "|" << std::endl;
-    }
+    if (port.size() > 5)
+        return (-2);
+    int _port = std::atoi(port.c_str());
+    if (_port < 1 || _port > 65535)
+        return (-2);
+    if (_port < 1024 || _port > 49151)
+        return (-3);
+    return (_port);
 }
+
+int Utils::validatePort(const std::string& port)
+{
+    int result = check_port(port);
+    if (result == -1)
+        throw std::runtime_error("Error : Port must contain digits only.");
+    if (result == -2)
+        throw std::runtime_error("Error : Port must be between 1 and 65535.");
+    if (result == -3)
+        throw std::runtime_error("Error : Use a safe port range (1024 - 49151).");
+    return result;
+}
+
+std::string Utils::getTime()
+{
+    time_t now = time(0);
+    struct tm* tm_info = localtime(&now);
+    char buffer[9];
+    strftime(buffer, 9, "%H:%M:%S", tm_info);
+    return std::string(buffer);
+}
+
+std::string Utils::getMachineName()
+{
+    char hostname[1024];
+
+    if (gethostname(hostname, sizeof(hostname)) == -1)
+        return "unknown";
+
+    hostname[sizeof(hostname) - 1] = '\0'; // safety
+
+    return std::string(hostname);
+}
+
+
+void Utils::sendHelp(int fd)
+{
+    std::stringstream os;
+    
+    os << std::left;
+    os << "+______________________________________________________________+\r\n";
+    os << "| " << std::setw(61) << "              Welcome to Our IRC Server!"             << "|\r\n";
+    os << "+______________________________________________________________+\r\n";
+    os << "| " << std::setw(61) << "            You connected successfully!"              << "|\r\n";
+    os << "| " << std::setw(61) << "  Complete your registration using the commands below." << "|\r\n";
+    os << "+______________________________________________________________+\r\n";
+    os << "| " << std::setw(61) << "                  AVAILABLE COMMANDS"                << "|\r\n";
+    os << "+______________________________________________________________+\r\n";
+    os << "| " << std::setw(14) << "  nickname" << ": " << std::setw(45) << "/nick <nickname>"                     << "|\r\n";
+    os << "| " << std::setw(14) << "  username" << ": " << std::setw(45) << "/user <username> <*> <0> :<realname>" << "|\r\n";
+    os << "+______________________________________________________________+\r\n";
+
+    std::string str = os.str();
+    // std::cout<<str<<std::endl;
+    send(fd, str.c_str(), str.size(), 0);
+}
+
+void Utils::sendAuthWelcome(client &c)
+{
+    std::string msg = "Authentication successful. Type /help for more information.\r\n";
+    send(c.fd,msg.c_str(),msg.size(),0);
+}
+
+void Utils::send_welcome(client &c)
+{
+    std::string msg; 
+    msg = std::string(":ircserv 001 ") + c.nickname +
+      " :Welcome to the IRC Network, " +
+      c.username + "!\r\n" + '\n'; 
+    send(c.fd,msg.c_str(),strlen(msg.c_str()),1);
+}
+
+void Utils::sendWelcome(int fd)
+{
+    std::stringstream os;
+    os << std::left;
+
+    os << "+______________________________________________________________+\r\n";
+    os << "| " << std::setw(61) << "             Connected to IRC Server!" << "|\r\n";
+    os << "+______________________________________________________________+\r\n";
+    os << "| " << std::setw(61) << "   To connect to the server, use:"       << "|\r\n";
+    os << "| " << std::setw(61) << ""                                        << "|\r\n";
+    os << "| " << std::setw(61) << "   CONNECT COMMAND:"                     << "|\r\n";
+    os << "| " << std::setw(61) << "      /connect <ip> <port> <password>"   << "|\r\n";
+    os << "| " << std::setw(61) << ""                                        << "|\r\n";
+    os << "| " << std::setw(61) << "   EXAMPLE:"                             << "|\r\n";
+    os << "| " << std::setw(61) << "      /connect 127.0.0.1 4444 mypassword" << "|\r\n";
+    os << "+______________________________________________________________+\r\n";
+
+    std::string str = os.str();
+    send(fd, str.c_str(), str.size(), 0);
+}
+
+void Utils::helpchannel(int fd)
+{
+    std::stringstream os;
+    os << std::left;
+
+    os << "+______________________________________________________________+\r\n";
+    os << "| " << std::setw(61) << "              Welcome to Our IRC Server!"   << "|\r\n";
+    os << "+______________________________________________________________+\r\n";
+    os << "| " << std::setw(61) << "            You are now connected!"         << "|\r\n";
+    os << "| " << std::setw(61) << "    To join or chat use the commands below." << "|\r\n";
+    os << "+______________________________________________________________+\r\n";
+    os << "| " << std::setw(61) << "                 MESSAGING COMMANDS"         << "|\r\n";
+    os << "+______________________________________________________________+\r\n";
+    os << "| " << std::setw(14) << "  join"    << ": " << std::setw(45) << "/join <#channel>"                        << "|\r\n";
+    os << "| " << std::setw(14) << "  channel" << ": " << std::setw(45) << "/privmsg <#channel> <message>"           << "|\r\n";
+    os << "| " << std::setw(14) << "  private" << ": " << std::setw(45) << "/privmsg <nickname> <message>"           << "|\r\n";
+    os << "+______________________________________________________________+\r\n";
+    os << "| " << std::setw(61) << "             CHANNEL OPERATOR COMMANDS"     << "|\r\n";
+    os << "+______________________________________________________________+\r\n";
+    os << "| " << std::setw(14) << "  kick"   << ": " << std::setw(45) << "/kick <#channel> <user>"              << "|\r\n";
+    os << "| " << std::setw(14) << "  invite" << ": " << std::setw(45) << "/invite <user> <#channel>"            << "|\r\n";
+    os << "| " << std::setw(14) << "  topic"  << ": " << std::setw(45) << "/topic <#channel> <topic>"            << "|\r\n";
+    os << "+______________________________________________________________+\r\n";
+    os << "| " << std::setw(61) << "                    MODE FLAGS"             << "|\r\n";
+    os << "+______________________________________________________________+\r\n";
+    os << "| " << std::setw(14) << "  mode i" << ": " << std::setw(45) << "/mode <#channel> +i/-i (invite only)" << "|\r\n";
+    os << "| " << std::setw(14) << "  mode t" << ": " << std::setw(45) << "/mode <#channel> +t/-t (topic lock)"  << "|\r\n";
+    os << "| " << std::setw(14) << "  mode k" << ": " << std::setw(45) << "/mode <#channel> +k/-k <password>"   << "|\r\n";
+    os << "| " << std::setw(14) << "  mode o" << ": " << std::setw(45) << "/mode <#channel> +o/-o <user>"       << "|\r\n";
+    os << "| " << std::setw(14) << "  mode l" << ": " << std::setw(45) << "/mode <#channel> +l/-l <limit>"      << "|\r\n";
+    os << "+______________________________________________________________+\r\n";
+    std::string str = os.str();
+    send(fd, str.c_str(), str.size(), 0);
+}
+

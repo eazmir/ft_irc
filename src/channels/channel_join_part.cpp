@@ -15,10 +15,11 @@
 #include "../../include/server.hpp"
 
 
+
 void managerchannel::handleJoin(const std::string &input, client &c)
 {
     if (!c.regestred) {
-        std::cout << "Error: Client not registered!" << std::endl;
+        std::cout << "Error: Client not registered" << std::endl;
         return;
     }
 
@@ -207,5 +208,5 @@ void managerchannel::handleQuit(const std::string &input, client &c)
             ++it;
         }
     }
-    std::cout << "[QUIT] User " << c.nickname << " has left the server." << std::endl;
+    std::cout <<"["<<Utils::getTime()<<"] "<< "[quit] User " << c.nickname << " has left the server." << std::endl;
 }

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   authentication.hpp                                 :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: eazmir <eazmir@student.42.fr>              +#+  +:+       +#+        */
+/*   By: haitaabe <haitaabe@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/21 02:45:56 by eazmir            #+#    #+#             */
-/*   Updated: 2026/04/11 15:44:06 by eazmir           ###   ########.fr       */
+/*   Updated: 2026/04/28 10:39:53 by haitaabe         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,16 +21,14 @@ class authentication
 {
     private:
         std::string _serverPassword;
-        bool status;
     public:
     authentication();
     authentication(std::string pass);
-    void handlePass(client &client, const std::string &pass);
-    void handleNick(client &client, const std::string &nick);
-    void handleUser(client &client, const std::string &user);
+    int handlePass(client &client, const std::string &pass);
+    int handleNick(client &client, const std::string &nick);
+    int handleUser(client &client, const std::string &user);
     void tryRegister(client &client,const std::string &input);
     void checkRegistration(client &c);
-    void send_welcome(client &c);
-    std::string Extract_data(const std::string &data);
+    std::string Extract_user(const std::vector<std::string> &args);
 };
 #endif
