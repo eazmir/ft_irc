@@ -26,7 +26,7 @@ void managerchannel::handleKick(const std::string &input, client &c)
         pos += target_nick.length();
         reason = input.substr(pos);
     }
-    if (reason.empty() || reason == " ") reason = " :Kicked by operator";
+    if (reason.empty() || reason == " ") reason = " :Kicked by operator : " + c.nickname;
 
     std::map<std::string, Channel*>::iterator it = channels.find(channel_name);
     if (it == channels.end()) {
@@ -147,6 +147,13 @@ void managerchannel::handleInvite(const std::string &input, client &c) {
         return;
     }
 
+    if (!c.regestred)
+    {
+        std::string err = ":ircserv 451 " + (c.nickname.empty() ? "*" : c.nickname) + " :You have not registered\r\n";
+        send(c.fd, err.c_str(), err.size(), 0);
+        return;
+    }
+
     if (channels.find(channel_name) == channels.end()) {
         std::string err = ":ircserv 403 " + c.nickname + " " + channel_name + " :No such channel\r\n";
         send(c.fd, err.c_str(), err.size(), 0);
@@ -164,6 +171,23 @@ void managerchannel::handleInvite(const std::string &input, client &c) {
         return;
     }
 
+    int target_fd = -1;
+    bool target_registered = false;
+
+    for (std::map<int, client>::iterator it = _clients.begin(); it != _clients.end(); ++it) {
+        if (it->second.nickname == target_nick) {
+            target_fd = it->first;
+            target_registered = it->second.regestred;
+            break;
+        }
+    }
+
+    if (target_fd == -1 || !target_registered) {
+        std::string err = ":ircserv 401 " + c.nickname + " " + target_nick + " :No such nick/channel\r\n";
+        send(c.fd, err.c_str(), err.size(), 0);
+        return;
+    }
+
     for (size_t i = 0; i < room->members.size(); i++) {
         if (_clients[room->members[i]].nickname == target_nick) {
             std::string err = ":ircserv 443 " + c.nickname + " " + target_nick + " " + channel_name + " :is already on channel\r\n";
@@ -177,17 +201,6 @@ void managerchannel::handleInvite(const std::string &input, client &c) {
     std::string confirm = ":ircserv 341 " + c.nickname + " " + target_nick + " " + channel_name + "\r\n";
     send(c.fd, confirm.c_str(), confirm.size(), 0);
 
-    int target_fd = -1;
-
-    for (std::map<int, client>::iterator it = _clients.begin(); it != _clients.end(); ++it) {
-        if (it->second.nickname == target_nick) {
-            target_fd = it->first;
-            break;
-        }
-    }
-
-    if (target_fd != -1) {
-        std::string invite_msg = ":" + c.nickname + " INVITE " + target_nick + " :" + channel_name + "\r\n";
-        send(target_fd, invite_msg.c_str(), invite_msg.size(), 0);
-    }
+    std::string invite_msg = ":" + c.nickname + " INVITE " + target_nick + " :" + channel_name + "\r\n";
+    send(target_fd, invite_msg.c_str(), invite_msg.size(), 0);
 }

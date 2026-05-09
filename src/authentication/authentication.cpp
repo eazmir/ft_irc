@@ -6,49 +6,26 @@
 /*   By: haitaabe <haitaabe@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/21 00:47:05 by eazmir            #+#    #+#             */
-/*   Updated: 2026/04/28 10:40:02 by haitaabe         ###   ########.fr       */
+/*   Updated: 2026/04/21 18:53:37 by haitaabe         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "../include/server.hpp"
-#include "../include/utls.hpp"
+#include "../../include/utls.hpp"
 
-authentication::authentication()
-{}
-
-authentication::authentication(std::string pass):_serverPassword(pass)
+authentication::authentication(std::map<int,client> &c,std::string &pass):
+_serverPassword(pass),
+_clients(c)
 {}
 
 
 int authentication::handlePass(client &c,const std::string &pass)
 {
-    std::vector<std::string> args;
-    std::stringstream  tokens(pass);
-    std::string token;
-    //connect <ip> <port> <password>;
-    
-    while (tokens >> token)
-        args.push_back(token);
-    
-    if (args[1] != c.ip)
-    {
-        std::string err = ":ircserv 464 * :IP incorrect\r\n";
-        send(c.fd, err.c_str(), err.size(), 0);
-        return (0);
-    }
-    else if (std::atoi(args[2].c_str()) != c.port)
-    {
-        std::string err = ":ircserv 464 * :Port incorrect\r\n";
-        send(c.fd, err.c_str(), err.size(), 0);
-        return (0);
-    }
-    else  if (args[3] != _serverPassword)
+    if (pass != _serverPassword)
     {
         std::string err = ":ircserv 464 * :Password incorrect\r\n";
         send(c.fd, err.c_str(), err.size(), 0);
         return (0);
     }
-    Utils::sendAuthWelcome(c);
     c.pass_ok = true;
     return (1);
 }
@@ -57,12 +34,6 @@ int authentication::handleUser(client &c,const std::string &user)
 {
     if (c.regestred)
         return (0);
-    else if (user.size() > 10)
-    {
-        std::string err = ":ircserv 432 * USER :Invalid username length (max 10)\r\n";
-        send(c.fd, err.c_str(), err.size(), 0);
-        return (0);
-    }
     c.username = user;
     c.user_ok = true;
     return (1);
@@ -78,14 +49,17 @@ int authentication::handleNick(client &c,const std::string &nick)
         send(c.fd, err.c_str(), err.size(), 0);
         return(0);
     }
-    else if (c.nickname == nick)
+    for (std::map<int, client>::iterator it = _clients.begin(); it != _clients.end(); ++it)
     {
-        std::string err = ":ircserv 433 * " + (c.nickname.empty() ? "*" : c.nickname) + " :Nickname is already in use\r\n";
-        send(c.fd, err.c_str(), err.size(), 0);
-        return (0);
+        if (it->second.nickname == nick)
+        {
+            std::string err = ":ircserv 433 * " + nick + " :Nickname is already in use\r\n";
+            send(c.fd, err.c_str(), err.size(), 0);
+            return 0;
+        }
     }
-    c.nickname = nick;
     c.nick_ok = true;
+    c.nickname = nick;
     return (1);
 }
 
@@ -109,7 +83,12 @@ void authentication::tryRegister(client &c,const std::string &input)
         send(c.fd, err.c_str(), err.size(), 0);
         return;
     }
-    else if (cmd == "/user")
+    if (cmd == "PASS")
+    {
+        if (!handlePass(c,arg[1]))
+            return;
+    }
+    else if (cmd == "USER")
     {
         // if (arg.size() < 5)
         // {
@@ -122,7 +101,7 @@ void authentication::tryRegister(client &c,const std::string &input)
         name = Extract_user(arg);
         c.realname = name;
     }
-    else if (cmd == "/nick")
+    else if (cmd == "NICK")
     {
         if (!handleNick(c,arg[1]))
             return;
@@ -157,7 +136,6 @@ void authentication::checkRegistration(client &c)
     if (c.nick_ok && c.pass_ok && c.user_ok)
     {
         Utils::send_welcome(c);
-        Utils::sendAuthWelcome(c);
         c.regestred = true;
     }
 }

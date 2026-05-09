@@ -1,20 +1,9 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   server.hpp                                         :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: haitaabe <haitaabe@student.42.fr>          +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/02/18 11:09:01 by eazmir            #+#    #+#             */
-/*   Updated: 2026/04/20 17:22:39 by haitaabe         ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
 #ifndef SERVER_HPP
 #define SERVER_HPP
 
 #include <string>
 #include <vector>
+#include <csignal>
 #include <arpa/inet.h>
 #include <sstream>
 #include "authentication.hpp"
@@ -33,6 +22,8 @@
 #include <map>
 #include <set>
 
+//////////////////////////////////////////////////////////
+extern bool g_status;
 ///////////////////////////////////////////////////////////
 // Forward declaration
 class managerchannel;
@@ -45,15 +36,15 @@ struct client
 {
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////
     int         fd;          // File descriptor (socket)
-    int         status;      // Status code, can define 0=connected, 1=authenticated, etc.
-    int         port;
+    int         status;      // Status code, connection=1 | desconnection=0
+    int         port;        // clinet port
  
     bool        pass_ok;     // Password validated
     bool        user_ok;     // USER command received
     bool        nick_ok;     // NICK command received
     bool        first;
     bool        regestred;   // Fully registered (passed all checks)
-    std::string     ip;
+    std::string     ip;      // server ip
     std::string buffer;
     std::string nickname;    // Client's nickname
     std::string username;    // Client's username
@@ -72,7 +63,9 @@ class  server
         std::string _password;
         std::map<int ,client> _clients;
         ///////////////////////////////////////////////////
-         managerchannel *channel;   
+         managerchannel *channel; 
+        authentication auth;
+        //////////////////////////////////////////////////  
         struct sockaddr_in _addr;
         std::vector<pollfd> _pfds;
     public:
@@ -90,6 +83,10 @@ class  server
         void accept_connection();
         void recv_data(size_t &index);
         void disconnect_client(size_t &index);
-        std::string Extract_data(client &c);
+        std::string extract_data(client &c);
+        ////////////////////////////////////////////////////
+        void clean();
 };
+void signalhandler();
+void bye();
 #endif
