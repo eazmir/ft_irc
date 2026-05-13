@@ -90,16 +90,21 @@ void authentication::tryRegister(client &c,const std::string &input)
     }
     else if (cmd == "USER")
     {
-        // if (arg.size() < 5)
-        // {
-        //     std::string err = ":ircserv 461 * USER :Not enough parameters\r\n";
-        //     send(c.fd, err.c_str(), err.size(), 0);
-        //     return;
-        // }
+        if (arg.size() < 5)
+        {
+            std::string err = ":ircserv 461 * USER :Not enough parameters\r\n";
+            send(c.fd, err.c_str(), err.size(), 0);
+            return;
+        }
         if (!handleUser(c,arg[1]))
             return;
         name = Extract_user(arg);
         c.realname = name;
+        if (arg[2] != "0")
+        {
+            c.hostname = arg[2];
+            c.nameserv = arg[3];
+        }
     }
     else if (cmd == "NICK")
     {

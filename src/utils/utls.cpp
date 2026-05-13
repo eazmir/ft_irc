@@ -14,6 +14,18 @@
 #include "../../include/client.hpp"
 #include "../../include/utls.hpp"
 
+std::string Utils::validatePassword(const std::string &pass)
+{
+    if (pass.size() > 30)
+        throw std::runtime_error("Error: password length must be between 1 and 30 characters.");
+    for (size_t i = 0; i < pass.size();i++)
+    {
+        if (pass[i] == '\t' || pass[i] == ' ' || !isprint(pass[i]))
+            throw std::runtime_error("Error: invalid password.");
+    }
+    return (pass);
+}
+
 std::string Utils::strTrim(const std::string &str) 
 {
     size_t start = str.find_first_not_of(" \t\r\n");

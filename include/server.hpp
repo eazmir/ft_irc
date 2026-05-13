@@ -21,6 +21,9 @@
 #include <fcntl.h>
 #include <map>
 #include <set>
+#include <ctime>
+#include <cstdlib>
+
 
 //////////////////////////////////////////////////////////
 extern bool g_status;
@@ -28,9 +31,6 @@ extern bool g_status;
 // Forward declaration
 class managerchannel;
 class authentication;
-///////////////////////////////////////////////////////////
-#define BUFFER_SIZE 1024
-#define MAX_CLIENT 1000
 ///////////////////////////////////////////////////////////
 struct client
 {
@@ -46,6 +46,7 @@ struct client
     bool        regestred;   // Fully registered (passed all checks)
     std::string     ip;      // server ip
     std::string buffer;
+    std::string nameserv;
     std::string nickname;    // Client's nickname
     std::string username;    // Client's username
     std::string hostname;    // Client's hostname (optional, from getpeername)
@@ -63,7 +64,7 @@ class  server
         std::string _password;
         std::map<int ,client> _clients;
         ///////////////////////////////////////////////////
-         managerchannel *channel; 
+        managerchannel *channel; 
         authentication auth;
         //////////////////////////////////////////////////  
         struct sockaddr_in _addr;
@@ -82,7 +83,7 @@ class  server
         void init(void);
         void accept_connection();
         void recv_data(size_t &index);
-        void disconnect_client(size_t &index);
+        void disconnect_client(size_t index);
         std::string extract_data(client &c);
         ////////////////////////////////////////////////////
         void clean();

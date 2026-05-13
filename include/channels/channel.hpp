@@ -36,13 +36,8 @@ class managerchannel
     private:
         std::map<int, client> &_clients;
         std::map<std::string, Channel*> channels;
-        std::map<std::string, Channel*>::iterator it; 
-        std::vector<std::string> tokens;
-        std::string channel_name;
-        std::string token;
-        Channel *ch;
+        std::map<std::string, Channel*>::iterator it;
         std::vector<std::string> splitByComma(const std::string &s);
-        // authentication auth;
     public:
         managerchannel(std::map<int, client> &clients,const std::string &pass);
         ~managerchannel();
@@ -55,6 +50,8 @@ class managerchannel
         void handleTopic(const std::string &input, client &c);
         void handleInvite(const std::string &input, client &c);
         void handleMode(const std::string &input, client &c);
+        //bot
+        void handleBotCommand(client &sender, const std::string &command);
 };
 
 #endif

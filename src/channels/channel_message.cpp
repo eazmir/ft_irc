@@ -51,6 +51,15 @@ void managerchannel::handlePrivmsg(const std::string &input, client &c)
     }
 
     std::string message_content = remainder.substr(first_non_space);
+    //bot
+    if (message_content.size() > 2 &&
+        message_content[0] == ':' &&
+        message_content[1] == '!')
+    {
+        std::string command = message_content.substr(2); // remove ":!"
+        handleBotCommand(c, command);
+        return;
+    }
 
     std::vector<std::string> targets = splitByComma(allTargets);
 

@@ -2,7 +2,7 @@
 #include "../../include/client.hpp"
 #include "../../include/utls.hpp"
 
-void server::disconnect_client(size_t &index)
+void server::disconnect_client(size_t index)
 {
     int fd = _pfds[index].fd;
 

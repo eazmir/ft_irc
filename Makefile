@@ -11,7 +11,7 @@ DIR_MAIN = main
 DIR_SRC  = src
 FILES = \
 	$(DIR_MAIN)/main.cpp \
-	$(DIR_SRC)//server/server.cpp \
+	$(DIR_SRC)/server/server.cpp \
 	$(DIR_SRC)/server/clean.cpp \
 	$(DIR_SRC)/server/accept.cpp \
 	$(DIR_SRC)/server/bye.cpp \
@@ -22,6 +22,7 @@ FILES = \
 	$(DIR_SRC)/server/receve.cpp \
 	$(DIR_SRC)/utils/utls.cpp \
 	$(DIR_SRC)/authentication/authentication.cpp \
+	$(DIR_SRC)/bonus/bot.cpp \
 	$(DIR_SRC)/channels/channel_manager.cpp \
 	$(DIR_SRC)/channels/channel_join_part.cpp \
 	$(DIR_SRC)/channels/channel_message.cpp \

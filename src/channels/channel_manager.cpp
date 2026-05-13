@@ -38,7 +38,6 @@ void managerchannel::handle_input(const std::string &input, client &c ,authentic
     std::string cmd;
 
     ss >> cmd;
-
     if (c.first && cmd == "/HELP")
     {
         Utils::sendRegistrationHelp(c.fd);

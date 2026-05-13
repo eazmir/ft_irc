@@ -19,7 +19,7 @@ int	main(int argc, char *argv[])
 	{
 		if (argc != 3)
 			throw std::runtime_error("./ircserv <port> <password>");
-		server server(Utils::validatePort(argv[1]), argv[2]);
+		server server(Utils::validatePort(argv[1]),Utils::validatePassword(argv[2]));
 	}
 	catch(const std::exception& e)
 	{
