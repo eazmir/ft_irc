@@ -1,4 +1,4 @@
-*This project has been created as part of the 42 curriculum by haitaabe and eazmir.*
+*This project has been created as part of the 42 curriculum by haitaabe and eazmir and abhmidat.*
 
 # IRC Server (`ircserv`)
 
@@ -86,6 +86,8 @@ PRIVMSG #general :hello everyone
 ├── src/
 │   ├── authentication/
 │   │   └── authentication.cpp
+│   ├── bonus/
+│   │   └── bot.cpp
 │   ├── channels/
 │   │   ├── channel_join_part.cpp
 │   │   ├── channel_manager.cpp
